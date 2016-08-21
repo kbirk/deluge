@@ -1,4 +1,4 @@
-package elastic
+package deluge
 
 // Document represents all necessary info to create an index and ingest a document.
 type Document interface {

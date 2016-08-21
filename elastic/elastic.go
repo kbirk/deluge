@@ -116,6 +116,22 @@ func PrepareIndex(host string, port string, index string, mappings string, clear
 	return nil
 }
 
+// IndexStats returns an index stats response.
+func IndexStats(host string, port string, index string) (*elastic.IndicesStatsResponse, error) {
+	client, err := getClient(host, port)
+	if err != nil {
+		return nil, err
+	}
+	// build query
+	res, err := client.
+		IndexStats(index).
+		Do()
+	if err != nil {
+		return nil, fmt.Errorf("Error occured while querying index stats: %v", err)
+	}
+	return res, nil
+}
+
 // Scan returns a scan cursor to page through all documents of an index.
 func Scan(host string, port string, index string, size int) (*elastic.ScanCursor, error) {
 	client, err := getClient(host, port)
@@ -131,23 +147,6 @@ func Scan(host string, port string, index string, size int) (*elastic.ScanCursor
 		return nil, fmt.Errorf("Error occured whiling scanning: %v", err)
 	}
 	return res, nil
-}
-
-// GetNumDocs returns the number of docs in an index.
-func GetNumDocs(host string, port string, index string) (int64, error) {
-	client, err := getClient(host, port)
-	if err != nil {
-		return 0, err
-	}
-	res, err := client.
-		Search().
-		Index(index).
-		Size(0).
-		Do()
-	if err != nil {
-		return 0, fmt.Errorf("Error occured retrieving doc count: %v", err)
-	}
-	return res.TotalHits(), nil
 }
 
 // Search returns the number of docs in an index.

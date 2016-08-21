@@ -1,6 +1,6 @@
 # Deluge
 
-> Fast and sustainable bulk Elasticsearch ingestion, migration, and cloning
+> Fast and sustainable Elasticsearch ingestion, migration, and cloning library.
 
 ## Dependencies
 
@@ -40,8 +40,8 @@ This package provides facilities for customizable bulk ingests of data into [ela
 package sample
 
 import (
+	"github.com/unchartedsoftware/deluge"
 	"github.com/unchartedsoftware/deluge/document"
-	"github.com/unchartedsoftware/deluge/elastic"
 )
 
 // Document represents a simple CSV type of document.
@@ -49,7 +49,7 @@ type Document struct {
 	document.CSV
 }
 
-func NewDocument() elastic.Document{
+func NewDocument() deluge.Document{
 	return Document{}
 }
 
@@ -92,6 +92,7 @@ package main
 import (
 	"runtime"
 	"github.com/unchartedsoftware/deluge"
+	"github.com/unchartedsoftware/deluge/input/file"
 	"github.com/username/example/sample"
 )
 

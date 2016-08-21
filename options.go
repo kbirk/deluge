@@ -1,16 +1,11 @@
 package deluge
 
-import (
-	"github.com/unchartedsoftware/deluge/elastic"
-	"github.com/unchartedsoftware/deluge/input"
-)
-
 // IngestorOptionFunc is a function that configures an Ingestor. It is used in
 // NewIngestor.
 type IngestorOptionFunc func(*Ingestor) error
 
 // SetDocument sets the document type for the ingest.
-func SetDocument(document elastic.Document) IngestorOptionFunc {
+func SetDocument(document Document) IngestorOptionFunc {
 	return func(i *Ingestor) error {
 		if document != nil {
 			i.document = document
@@ -20,7 +15,7 @@ func SetDocument(document elastic.Document) IngestorOptionFunc {
 }
 
 // SetInput sets the input type for the ingest.
-func SetInput(input input.Input) IngestorOptionFunc {
+func SetInput(input Input) IngestorOptionFunc {
 	return func(i *Ingestor) error {
 		if input != nil {
 			i.input = input

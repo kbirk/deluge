@@ -1,13 +1,15 @@
 package pool
 
 import (
+	"io"
+
 	"github.com/unchartedsoftware/deluge/input"
 	"github.com/unchartedsoftware/deluge/util/progress"
 )
 
 // Pool represents a single goroutine pool for batching workers.
 type Pool struct {
-	WorkChan chan interface{}
+	WorkChan chan io.Reader
 	ErrChan  chan error
 	KillChan chan bool
 	Size     int
@@ -16,7 +18,7 @@ type Pool struct {
 // New returns a new pool object with the given worker size
 func New(size int) *Pool {
 	return &Pool{
-		WorkChan: make(chan interface{}),
+		WorkChan: make(chan io.Reader),
 		ErrChan:  make(chan error),
 		KillChan: make(chan bool),
 		Size:     size,
@@ -93,7 +95,7 @@ func (p *Pool) open(worker Worker) {
 }
 
 // Execute launches a batch of ingest workers with the provided ingest information.
-func (p *Pool) Execute(worker Worker, work input.Input) error {
+func (p *Pool) Execute(worker Worker, work Work) error {
 	// open the pool and dispatch the workers
 	p.open(worker)
 	// process all files by spreading them to free workers, this blocks until

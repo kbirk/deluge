@@ -11,10 +11,8 @@ import (
 
 	"github.com/unchartedsoftware/deluge/elastic"
 	"github.com/unchartedsoftware/deluge/elastic/equalizer"
-	"github.com/unchartedsoftware/deluge/input"
 	"github.com/unchartedsoftware/deluge/pool"
 	"github.com/unchartedsoftware/deluge/threshold"
-	"github.com/unchartedsoftware/deluge/util"
 )
 
 const (
@@ -29,15 +27,11 @@ const (
 	defaultBulkByteSize         = 1024 * 1024 * 20
 )
 
-var (
-	errReader = fmt.Errorf("Next element is not of type `io.Reader`")
-)
-
 // Ingestor is an Elasticsearch ingestor client. Create one by calling
 // NewIngestor.
 type Ingestor struct {
-	input                input.Input
-	document             elastic.Document
+	input                Input
+	document             Document
 	index                string
 	host                 string
 	port                 string
@@ -87,16 +81,8 @@ func (i *Ingestor) Ingest() error {
 		return fmt.Errorf("Ingestor `input` has not been set with SetInput() option")
 	}
 
-	// get ingest info
-	info, err := i.input.GetInfo(i.input.GetPath())
-	if err != nil {
-		return err
-	}
-
-	// display some info of the pending ingest
-	log.Infof("Processing %d sources containing %s of data",
-		len(info.Sources),
-		util.FormatBytes(float64(info.NumTotalBytes)))
+	// print input summary
+	log.Info(i.input.Summary())
 
 	// get the document mapping
 	mapping, err := i.document.GetMapping()
@@ -201,26 +187,19 @@ func (i *Ingestor) newBulkIndexRequest(line string) (*es.BulkIndexRequest, error
 }
 
 func (i *Ingestor) newlineWorker() pool.Worker {
-	return func(next interface{}) (uint64, error) {
-		// get file reader
-		r, ok := next.(io.Reader)
-		if !ok {
-			if threshold.CheckErr(errReader, i.threshold) {
-				return 0, errReader
-			}
-		}
+	return func(next io.Reader) (int64, error) {
 
 		// get decompress reader (if compression is specified / supported)
-		dr, err := getReader(r, i.compression)
+		reader, err := getReader(next, i.compression)
 		if threshold.CheckErr(err, i.threshold) {
 			return 0, err
 		}
 
 		// scan file line by line
-		scanner := bufio.NewScanner(dr)
+		scanner := bufio.NewScanner(reader)
 
 		// total bytes sent
-		bytes := uint64(0)
+		bytes := int64(0)
 
 		for {
 			// create a new bulk request object
@@ -261,7 +240,7 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 			}
 
 			// add total bytes
-			bytes += uint64(bulk.EstimatedSizeInBytes())
+			bytes += int64(bulk.EstimatedSizeInBytes())
 
 			// send the request through the equalizer, this will wait until the
 			// equalizer determines ES is 'ready'.

@@ -14,7 +14,7 @@ import (
 var (
 	startTime    time.Time
 	endTime      time.Time
-	currentBytes uint64
+	currentBytes int64
 	mutex        = sync.Mutex{}
 )
 
@@ -31,17 +31,16 @@ func EndProgress() {
 
 // UpdateProgress will update and print a human readable progress message for
 // a given task.
-func UpdateProgress(bytes uint64) {
+func UpdateProgress(bytes int64) {
 	mutex.Lock()
 	currentBytes += bytes
-	fCurrentBytes := float64(currentBytes)
 	elapsedSec := time.Since(startTime).Seconds()
-	bytesPerSec := 1.0
+	bytesPerSec := int64(1)
 	if elapsedSec > 0 {
-		bytesPerSec = fCurrentBytes / elapsedSec
+		bytesPerSec = currentBytes / int64(elapsedSec)
 	}
 	fmt.Printf("\rIngested %+8s at a rate of %+8sps, current duration: %v",
-		util.FormatBytes(fCurrentBytes),
+		util.FormatBytes(currentBytes),
 		util.FormatBytes(bytesPerSec),
 		time.Since(startTime))
 	mutex.Unlock()

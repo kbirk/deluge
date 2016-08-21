@@ -1,4 +1,8 @@
 package pool
 
+import (
+	"io"
+)
+
 // Worker represents a designated worker function to batch in a pool.
-type Worker func(interface{}) (uint64, error)
+type Worker func(io.Reader) (int64, error)
