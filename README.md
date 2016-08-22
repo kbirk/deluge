@@ -51,7 +51,7 @@ type Document struct {
 
 // NewDocument instantiates and returns a new document.
 func NewDocument() deluge.Document {
-	return Document{}
+	return &Document{}
 }
 
 // GetID returns the document's id.
@@ -114,14 +114,14 @@ func main() {
 	ingestor, err := deluge.NewIngestor(
 		deluge.SetDocument(document)
 		deluge.SetInput(input),
+		deluge.SetURL("localhost", "9200"),
 		deluge.SetIndex("test_index"),
-		deluge.SetURL("10.64.16.120:9200"),
 		deluge.SetErrorThreshold(0.05),
 		deluge.SetNumWorkers(8),
 		deluge.SetActiveConnections(16),
 		deluge.SetCompression("gzip"),
-		deluge.ClearExisting(),
 		deluge.SetBulkByteSize(1024*1024*20),
+		deluge.ClearExistingIndex(),
 		deluge.SetNumReplicas(1)),
 	if err != nil {
 		return err
