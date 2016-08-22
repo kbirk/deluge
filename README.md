@@ -55,17 +55,17 @@ func NewDocument() deluge.Document {
 }
 
 // GetID returns the document's id.
-func (d Document) GetID() (string, error) {
+func (d *Document) GetID() (string, error) {
 	return d.Cols[0], nil
 }
 
 // GetType returns the document's type.
-func (d Document) GetType() (string, error) {
+func (d *Document) GetType() (string, error) {
 	return "datum", nil
 }
 
 // GetMapping returns the document's mapping.
-func (d Document) GetMapping() (string, error) {
+func (d *Document) GetMapping() (string, error) {
 	return `{
         "datum": {
 			"properties":{
@@ -78,7 +78,7 @@ func (d Document) GetMapping() (string, error) {
 }
 
 // GetSource returns the source portion of the document.
-func (d Document) GetSource() (interface{}, error) {
+func (d *Document) GetSource() (interface{}, error) {
 	return map[string]interface{}{
 		"description": d.Cols[1],
 	}, nil
