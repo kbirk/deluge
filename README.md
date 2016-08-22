@@ -49,7 +49,8 @@ type Document struct {
 	document.CSV
 }
 
-func NewDocument() deluge.Document{
+// NewDocument instantiates and returns a new document.
+func NewDocument() deluge.Document {
 	return Document{}
 }
 
@@ -66,7 +67,7 @@ func (d Document) GetType() (string, error) {
 // GetMapping returns the document's mapping.
 func (d Document) GetMapping() (string, error) {
 	return `{
-        "` + d.GetType() + `": {
+        "datum": {
 			"properties":{
 	            "description": {
 	                "type": "string"
@@ -126,7 +127,7 @@ func main() {
 		return err
 	}
 
-	// Initiate a bulk ingest
+	// Initiate a bulk ingest job
 	err = ingestor.Ingest()
 	if err != nil {
 		return err
