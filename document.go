@@ -6,5 +6,5 @@ type Document interface {
 	GetSource() (interface{}, error)
 	GetID() (string, error)
 	GetMapping() (string, error)
-	GetType() string
+	GetType() (string, error)
 }

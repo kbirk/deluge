@@ -19,7 +19,8 @@ func (d *JSON) SetData(data interface{}) error {
 	}
 	// unmarshal
 	var m map[string]interface{}
-	if err := json.Unmarshal([]byte(line), &m); err != nil {
+	err := json.Unmarshal([]byte(line), &m)
+	if err != nil {
 		return fmt.Errorf("Could not unmarshal `%v` into type map[string]interface{}", data)
 	}
 	d.Data = m

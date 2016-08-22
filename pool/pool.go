@@ -4,7 +4,6 @@ import (
 	"io"
 
 	"github.com/unchartedsoftware/deluge/input"
-	"github.com/unchartedsoftware/deluge/util/progress"
 )
 
 // Pool represents a single goroutine pool for batching workers.
@@ -33,15 +32,11 @@ func (p *Pool) dispatchWorker(worker Worker) {
 		select {
 		case work := <-p.WorkChan:
 			// do work
-			bytes, err := worker(work)
+			err := worker(work)
 			// broadcast work response to pool, if nil worker is ready for more
 			// work, if not, then shut down the pool
 			p.ErrChan <- err
-			// if no error, print current progress
-			if err == nil {
-				// Update and print current progress
-				progress.UpdateProgress(bytes)
-			}
+
 		case <-p.KillChan:
 			// kill worker
 			return
@@ -49,17 +44,16 @@ func (p *Pool) dispatchWorker(worker Worker) {
 	}
 }
 
-func (p *Pool) close(err error) error {
+func (p *Pool) close(closingErr error) error {
 	// workers will currently be blocked trying to send a ready/error message
 	// to the pool. We need to absorb those messages now so that they will be
 	// able to process the kill signals.
-	firstErr := err
 	go func() {
 		for i := 0; i < p.Size; i++ {
 			err := <-p.ErrChan
 			// still need to check for errors
-			if err != nil && firstErr == nil {
-				firstErr = err
+			if err != nil && closingErr == nil {
+				closingErr = err
 			}
 		}
 	}()
@@ -71,17 +65,8 @@ func (p *Pool) close(err error) error {
 	close(p.WorkChan)
 	close(p.KillChan)
 	close(p.ErrChan)
-	// print summary based on error
-	if firstErr != nil {
-		// error!
-		progress.EndProgress()
-		progress.PrintFailure()
-	} else {
-		// success!
-		progress.EndProgress()
-		progress.PrintSuccess()
-	}
-	return firstErr
+	// return the first error
+	return closingErr
 }
 
 func (p *Pool) open(worker Worker) {
@@ -90,8 +75,6 @@ func (p *Pool) open(worker Worker) {
 		// dispatch the workers, they will wait until the input channel is closed
 		go p.dispatchWorker(worker)
 	}
-	// start progress tracking
-	progress.StartProgress()
 }
 
 // Execute launches a batch of ingest workers with the provided ingest information.

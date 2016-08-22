@@ -44,7 +44,7 @@ import (
 	"github.com/unchartedsoftware/deluge/document"
 )
 
-// Document represents a simple CSV type of document.
+// Document overrides the CSV document type.
 type Document struct {
 	document.CSV
 }
@@ -59,8 +59,8 @@ func (d Document) GetID() (string, error) {
 }
 
 // GetType returns the document's type.
-func (d Document) GetType() string {
-	return "datum"
+func (d Document) GetType() (string, error) {
+	return "datum", nil
 }
 
 // GetMapping returns the document's mapping.
@@ -116,8 +116,8 @@ func main() {
 		deluge.SetIndex("test_index"),
 		deluge.SetURL("10.64.16.120:9200"),
 		deluge.SetErrorThreshold(0.05),
-		deluge.SetActiveConnections(8),
 		deluge.SetNumWorkers(8),
+		deluge.SetActiveConnections(16),
 		deluge.SetCompression("gzip"),
 		deluge.ClearExisting(),
 		deluge.SetBulkByteSize(1024*1024*20),
@@ -127,7 +127,7 @@ func main() {
 	}
 
 	// Initiate a bulk ingest
-	err := ingestor.Ingest()
+	err = ingestor.Ingest()
 	if err != nil {
 		return err
 	}

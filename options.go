@@ -67,8 +67,8 @@ func SetNumWorkers(numWorkers int) IngestorOptionFunc {
 	}
 }
 
-// ClearExisting clears an existing index if specified.
-func ClearExisting(clearExisting bool) IngestorOptionFunc {
+// ClearExistingIndex clears an existing index if specified.
+func ClearExistingIndex(clearExisting bool) IngestorOptionFunc {
 	return func(i *Ingestor) error {
 		i.clearExisting = clearExisting
 		return nil
@@ -87,6 +87,14 @@ func SetCompression(compression string) IngestorOptionFunc {
 func SetIndex(index string) IngestorOptionFunc {
 	return func(i *Ingestor) error {
 		i.index = index
+		return nil
+	}
+}
+
+// SetBulkByteSize sets the maximum number of bytes in a bulk index payload.
+func SetBulkByteSize(numBytes int64) IngestorOptionFunc {
+	return func(i *Ingestor) error {
+		i.bulkByteSize = numBytes
 		return nil
 	}
 }

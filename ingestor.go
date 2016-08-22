@@ -13,6 +13,7 @@ import (
 	"github.com/unchartedsoftware/deluge/elastic/equalizer"
 	"github.com/unchartedsoftware/deluge/pool"
 	"github.com/unchartedsoftware/deluge/threshold"
+	"github.com/unchartedsoftware/deluge/util/progress"
 )
 
 const (
@@ -107,6 +108,9 @@ func (i *Ingestor) Ingest() error {
 	// create pool of size N
 	p := pool.New(i.numActiveConnections)
 
+	// start progress tracking
+	progress.StartProgress()
+
 	// launch the ingest job
 	err = p.Execute(i.newlineWorker(), i.input)
 
@@ -119,10 +123,17 @@ func (i *Ingestor) Ingest() error {
 		}
 	}
 
-	if errs != nil {
-		// error threshold was surpassed
+	if err != nil {
+		// error threshold was surpassed, or there was a fatal error
+		// otherwise the pool would not return this error
+		progress.EndProgress()
+		progress.PrintFailure()
 		return err
 	}
+
+	// success
+	progress.EndProgress()
+	progress.PrintSuccess()
 
 	// close the backpressure equalizer
 	equalizer.Close()
@@ -154,11 +165,15 @@ func getReader(reader io.Reader, compression string) (io.Reader, error) {
 }
 
 func (i *Ingestor) newRequest() (*equalizer.Request, error) {
+	typ, err := i.document.GetType()
+	if err != nil {
+		return nil, err
+	}
 	return equalizer.NewRequest(
 		i.host,
 		i.port,
 		i.index,
-		i.document.GetType())
+		typ)
 }
 
 func (i *Ingestor) newBulkIndexRequest(line string) (*es.BulkIndexRequest, error) {
@@ -187,12 +202,12 @@ func (i *Ingestor) newBulkIndexRequest(line string) (*es.BulkIndexRequest, error
 }
 
 func (i *Ingestor) newlineWorker() pool.Worker {
-	return func(next io.Reader) (int64, error) {
+	return func(next io.Reader) error {
 
 		// get decompress reader (if compression is specified / supported)
 		reader, err := getReader(next, i.compression)
 		if threshold.CheckErr(err, i.threshold) {
-			return 0, err
+			return err
 		}
 
 		// scan file line by line
@@ -205,7 +220,7 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 			// create a new bulk request object
 			bulk, err := i.newRequest()
 			if err != nil {
-				return 0, err
+				return err
 			}
 
 			// begin reading file, line by line
@@ -217,7 +232,7 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 				// create bulk index request
 				req, err := i.newBulkIndexRequest(line)
 				if threshold.CheckErr(err, i.threshold) {
-					return 0, err
+					return err
 				}
 
 				// ensure that the request was created
@@ -244,16 +259,24 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 
 			// send the request through the equalizer, this will wait until the
 			// equalizer determines ES is 'ready'.
-			// NOTE: Due to the asynchronous nature of the eq, error values
-			// returned here may not be caused from this worker goroutine.
+			// NOTE: Due to the asynchronous nature of the equalizer, error
+			// values returned here may not be caused from this worker
+			// goroutine.
 			err = equalizer.Send(bulk)
 			if err != nil {
 				// add error to internal slice
 				threshold.CheckErr(err, i.threshold)
 				// always return on bulk ingest error
-				return 0, err
+				return err
 			}
+			// update and print current progress
+			// NOTE: Due to the asynchronous nature of the equalizer, the
+			// request sent from this worker may not have actually been ingested
+			// by this time. However updating the progress with this workers
+			// payload size still gives a relatively accurate progress.
+			progress.UpdateProgress(bytes)
+
 		}
-		return bytes, nil
+		return nil
 	}
 }

@@ -9,10 +9,9 @@ all:
 	@echo ""
 	@echo "commands:"
 	@echo "  build         - build the source code"
-	@echo "  deploy        - build and copy the dist binary for dockerization"
 	@echo "  lint          - lint the source code"
 	@echo "  test          - test the source code"
-	@echo "  fmt           - format the code with gofmt"
+	@echo "  fmt           - format the source code"
 	@echo ""
 	@echo "  install       - install vendored dependencies"
 
