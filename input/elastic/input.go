@@ -1,8 +1,12 @@
 package elastic
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
+
+	e "gopkg.in/olivere/elastic.v3"
 
 	"github.com/unchartedsoftware/deluge"
 	es "github.com/unchartedsoftware/deluge/elastic"
@@ -11,7 +15,7 @@ import (
 
 // Input represents an input type for reading files off a filesystem.
 type Input struct {
-	reader   io.Reader
+	cursor   *e.ScanCursor
 	host     string
 	port     string
 	index    string
@@ -46,13 +50,13 @@ func NewInput(host, port, index string, scanSize int) (deluge.Input, error) {
 		indexStats.Primaries.Store != nil {
 		byteSize = indexStats.Primaries.Store.SizeInBytes
 	}
-	// create the io.Reader
-	reader, err := NewReader(host, port, index, scanSize)
+	// create the scan cursor
+	cursor, err := es.Scan(host, port, index, scanSize)
 	if err != nil {
 		return nil, err
 	}
 	return &Input{
-		reader:   reader,
+		cursor:   cursor,
 		host:     host,
 		port:     port,
 		index:    index,
@@ -63,10 +67,31 @@ func NewInput(host, port, index string, scanSize int) (deluge.Input, error) {
 
 // Next returns the io.Reader to scan the index for more docs.
 func (i *Input) Next() (io.Reader, error) {
-	// TODO: currently instances of this share the same ScanCursor and are
-	// therefore locked with a mutex. Instead try incrementing the scan here
-	// so that the resulting io.Reader can be used concurrently
-	return i.reader, nil
+	res, err := i.cursor.Next()
+	if err == e.EOS {
+		// End of stream (or scan)
+		return nil, io.EOF
+	}
+	if err != nil {
+		return nil, err
+	}
+	if len(res.Hits.Hits) == 0 {
+		return nil, io.EOF
+	}
+	// create buffer
+	var buffer []byte
+	// marhall the docs into bytes
+	for _, doc := range res.Hits.Hits {
+		sub, err := json.Marshal(doc)
+		if err != nil {
+			return nil, err
+		}
+		// append a newline
+		sub = append(sub, byte('\n'))
+		// add to buffer
+		buffer = append(buffer, sub...)
+	}
+	return bytes.NewReader(buffer), nil
 }
 
 // Summary returns a string containing summary information.
