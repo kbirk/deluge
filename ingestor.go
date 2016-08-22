@@ -165,15 +165,10 @@ func getReader(reader io.Reader, compression string) (io.Reader, error) {
 }
 
 func (i *Ingestor) newRequest() (*equalizer.Request, error) {
-	typ, err := i.document.GetType()
-	if err != nil {
-		return nil, err
-	}
 	return equalizer.NewRequest(
 		i.host,
 		i.port,
-		i.index,
-		typ)
+		i.index)
 }
 
 func (i *Ingestor) newBulkIndexRequest(line string) (*es.BulkIndexRequest, error) {
@@ -187,6 +182,11 @@ func (i *Ingestor) newBulkIndexRequest(line string) (*es.BulkIndexRequest, error
 	if err != nil {
 		return nil, err
 	}
+	// get type from document
+	typ, err := i.document.GetType()
+	if err != nil {
+		return nil, err
+	}
 	// get source from document
 	source, err := i.document.GetSource()
 	if err != nil {
@@ -196,6 +196,7 @@ func (i *Ingestor) newBulkIndexRequest(line string) (*es.BulkIndexRequest, error
 		// create index action
 		return es.NewBulkIndexRequest().
 			Id(id).
+			Type(typ).
 			Doc(source), nil
 	}
 	return nil, nil

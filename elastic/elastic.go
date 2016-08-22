@@ -11,14 +11,13 @@ import (
 
 // GetBulkRequest creates and returns a pointer to a new elastic.BulkService
 // for building a bulk request.
-func GetBulkRequest(host string, port string, index string, typ string) (*elastic.BulkService, error) {
+func GetBulkRequest(host string, port string, index string) (*elastic.BulkService, error) {
 	client, err := getClient(host, port)
 	if err != nil {
 		return nil, err
 	}
 	return client.Bulk().
-		Index(index).
-		Type(typ), nil
+		Index(index), nil
 }
 
 // NewBulkIndexRequest creates and returns a pointer to a BulkIndexRequest object.

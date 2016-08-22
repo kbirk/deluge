@@ -18,8 +18,8 @@ type Request struct {
 }
 
 // NewRequest creates and returns a pointer to a request object.
-func NewRequest(host string, port string, index string, typ string) (*Request, error) {
-	bulk, err := es.GetBulkRequest(host, port, index, typ)
+func NewRequest(host string, port string, index string) (*Request, error) {
+	bulk, err := es.GetBulkRequest(host, port, index)
 	if err != nil {
 		return nil, err
 	}
