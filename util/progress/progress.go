@@ -16,17 +16,48 @@ var (
 	endTime      time.Time
 	currentBytes int64
 	mutex        = sync.Mutex{}
+	endChan      chan bool
 )
+
+func tick() {
+	for {
+		select {
+		case <-endChan:
+			// stop the progress ticker
+			return
+
+		default:
+			// print the current progress
+			now := time.Now().Round(time.Second)
+			duration := now.Sub(startTime)
+			elapsedSec := int64(duration.Seconds())
+			bytesPerSec := int64(1)
+			if elapsedSec > 0 {
+				bytesPerSec = currentBytes / elapsedSec
+			}
+			fmt.Printf("\rIngested %+8s at a rate of %+8sps, current duration: %v",
+				util.FormatBytes(currentBytes),
+				util.FormatBytes(bytesPerSec),
+				duration)
+			// sleep for a second
+			time.Sleep(time.Second)
+		}
+	}
+}
 
 // StartProgress sets the internal epoch and the total bytes to track.
 func StartProgress() {
-	startTime = time.Now()
+	startTime = time.Now().Round(time.Second)
 	currentBytes = 0
+	endChan = make(chan bool)
+	go tick()
 }
 
 // EndProgress sets the end time.
 func EndProgress() {
-	endTime = time.Now()
+	endTime = time.Now().Round(time.Second)
+	endChan <- true
+	close(endChan)
 }
 
 // UpdateProgress will update and print a human readable progress message for
@@ -34,15 +65,6 @@ func EndProgress() {
 func UpdateProgress(bytes int64) {
 	mutex.Lock()
 	currentBytes += bytes
-	elapsedSec := time.Since(startTime).Seconds()
-	bytesPerSec := int64(1)
-	if elapsedSec > 0 {
-		bytesPerSec = currentBytes / int64(elapsedSec)
-	}
-	fmt.Printf("\rIngested %+8s at a rate of %+8sps, current duration: %v",
-		util.FormatBytes(currentBytes),
-		util.FormatBytes(bytesPerSec),
-		time.Since(startTime))
 	mutex.Unlock()
 	runtime.Gosched()
 }
