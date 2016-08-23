@@ -93,7 +93,7 @@ func PrepareIndex(host string, port string, index string, mappings string, clear
 	}
 	// if index exists
 	if indexExists && clearExisting {
-		log.Infof("Deleting index `%s:%s/%s'", host, port, index)
+		log.Infof("Deleting index `%s:%s/%s`", host, port, index)
 		err = DeleteIndex(host, port, index)
 		if err != nil {
 			return err
@@ -101,7 +101,7 @@ func PrepareIndex(host string, port string, index string, mappings string, clear
 	}
 	// if index does not exist at this point, create it
 	if !indexExists || clearExisting {
-		log.Infof("Creating index `%s:%s/%s'", host, port, index)
+		log.Infof("Creating index `%s:%s/%s`", host, port, index)
 		err = CreateIndex(host, port, index, `{
 			"mappings":`+mappings+`,
 			"settings": {
