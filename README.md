@@ -9,8 +9,8 @@ Requires the [Go](https://golang.org/) programming language binaries with the `G
 ## Features
 
 - Concurrent input loading and parsing via go-routine worker pool
-- Sustainable Elasticsearch ingestion via fixed size connection pool and back-pressure
-- Configurable Error thresholding to prevent hard crashes on sporadic bad data
+- Sustainable ingestion rate via fixed-size connection pool and back-pressure
+- Configurable error thresholding to prevent hard crashes on sporadic parsing errors
 - Clean, simple, and highly extensible interfaces for customizable ingests
 
 ## Installation
@@ -99,6 +99,7 @@ package main
 
 import (
 	"runtime"
+	"gopkg.in/olivere/elastic.v3"
 	"github.com/unchartedsoftware/deluge"
 	"github.com/unchartedsoftware/deluge/input/file"
 	"github.com/username/example/sample"
@@ -117,11 +118,21 @@ func main() {
 		"/path/to/data",
 		[ "files", "or", "dirs", "to", "exclude" ])
 
+	// Create the elasticsearch client
+	client, err := elastic.NewClient(
+		elastic.SetURL("localhost:9200"),
+		elastic.SetMaxRetries(10),
+		elastic.SetSniff(false),
+		elastic.SetGzip(true))
+	if err != nil {
+		return err
+	}
+
 	// Create the ingestor object
 	ingestor, err := deluge.NewIngestor(
 		deluge.SetDocument(document)
 		deluge.SetInput(input),
-		deluge.SetURL("localhost", "9200"),
+		deluge.SetClient(client),
 		deluge.SetIndex("test_index"),
 		deluge.SetErrorThreshold(0.05),
 		deluge.SetNumWorkers(8),

@@ -5,8 +5,6 @@ import (
 	"time"
 
 	"gopkg.in/olivere/elastic.v3"
-
-	es "github.com/unchartedsoftware/deluge/elastic"
 )
 
 // Request represents a bulk request and its generation time.
@@ -18,16 +16,12 @@ type Request struct {
 }
 
 // NewRequest creates and returns a pointer to a request object.
-func NewRequest(host string, port string, index string) (*Request, error) {
-	bulk, err := es.GetBulkRequest(host, port, index)
-	if err != nil {
-		return nil, err
-	}
+func NewRequest(client *elastic.Client, index string) *Request {
 	return &Request{
-		bulk:  bulk,
+		bulk:  client.Bulk().Index(index),
 		reqs:  make([]elastic.BulkableRequest, 0),
 		start: time.Now(),
-	}, nil
+	}
 }
 
 // Add adds a bulkable request to the bulk payload.

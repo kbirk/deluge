@@ -2,15 +2,17 @@ package deluge
 
 import (
 	"bufio"
+	"compress/bzip2"
+	"compress/flate"
 	"compress/gzip"
+	"compress/zlib"
 	"fmt"
 	"io"
 
 	"github.com/unchartedsoftware/plog"
-	es "gopkg.in/olivere/elastic.v3"
+	"gopkg.in/olivere/elastic.v3"
 
-	"github.com/unchartedsoftware/deluge/elastic"
-	"github.com/unchartedsoftware/deluge/elastic/equalizer"
+	"github.com/unchartedsoftware/deluge/equalizer"
 	"github.com/unchartedsoftware/deluge/pool"
 	"github.com/unchartedsoftware/deluge/threshold"
 	"github.com/unchartedsoftware/deluge/util/progress"
@@ -34,8 +36,7 @@ type Ingestor struct {
 	input                Input
 	document             Document
 	index                string
-	host                 string
-	port                 string
+	client               *elastic.Client
 	clearExisting        bool
 	numActiveConnections int
 	numWorkers           int
@@ -49,8 +50,6 @@ type Ingestor struct {
 func NewIngestor(options ...IngestorOptionFunc) (*Ingestor, error) {
 	// Set up the ingestor
 	i := &Ingestor{
-		host:                 defaultHost,
-		port:                 defaultPort,
 		clearExisting:        defaultClearExisting,
 		compression:          defaultCompression,
 		numActiveConnections: defaultNumActiveConnections,
@@ -68,6 +67,59 @@ func NewIngestor(options ...IngestorOptionFunc) (*Ingestor, error) {
 	return i, nil
 }
 
+func (i *Ingestor) prepareIndex() error {
+	// check if index exists
+	indexExists, err := i.client.IndexExists(i.index).Do()
+	if err != nil {
+		return err
+	}
+	// if index exists
+	if indexExists && i.clearExisting {
+		// send the delete index request
+		log.Infof("Deleting existing index `%s`", i.index)
+		res, err := i.client.DeleteIndex(i.index).Do()
+		if err != nil {
+			return fmt.Errorf("Error occured while deleting index: %v", err)
+		}
+		if !res.Acknowledged {
+			return fmt.Errorf("Delete index request not acknowledged for index: `%s`", i.index)
+		}
+	}
+	// if index does not exist at this point, create it
+	if !indexExists || i.clearExisting {
+		// get the document mapping
+		mapping, err := i.document.GetMapping()
+		if err != nil {
+			return err
+		}
+		// prepare the create index body
+		body := fmt.Sprintf("{\"mappings\":%s,\"settings\":{\"number_of_replicas\":0}}", mapping)
+		// send the request
+		log.Infof("Creating index `%s`", i.index)
+		res, err := i.client.CreateIndex(i.index).Body(body).Do()
+		if err != nil {
+			return fmt.Errorf("Error occured while creating index: %v", err)
+		}
+		if !res.Acknowledged {
+			return fmt.Errorf("Create index request not acknowledged for `%s`", i.index)
+		}
+	}
+	return nil
+}
+
+func (i *Ingestor) enableReplicas() error {
+	body := fmt.Sprintf("{\"index\":{\"number_of_replicas\":%d}}", i.numReplicas)
+	log.Infof("Enabling replicas for index `%s`", i.index)
+	res, err := i.client.IndexPutSettings(i.index).BodyString(body).Do()
+	if err != nil {
+		return fmt.Errorf("Error occured while enabling replicas: %v", err)
+	}
+	if !res.Acknowledged {
+		return fmt.Errorf("Enable replication index request not acknowledged for index `%s`", i.index)
+	}
+	return nil
+}
+
 // Ingest will run the ingest job.
 func (i *Ingestor) Ingest() error {
 
@@ -81,23 +133,15 @@ func (i *Ingestor) Ingest() error {
 	if i.input == nil {
 		return fmt.Errorf("Ingestor `input` has not been set with SetInput() option")
 	}
+	if i.client == nil {
+		return fmt.Errorf("Ingestor `client` has not been set with SetClient() option")
+	}
 
 	// print input summary
 	log.Info(i.input.Summary())
 
-	// get the document mapping
-	mapping, err := i.document.GetMapping()
-	if err != nil {
-		return err
-	}
-
 	// prepare elasticsearch index
-	err = elastic.PrepareIndex(
-		i.host,
-		i.port,
-		i.index,
-		mapping,
-		i.clearExisting)
+	err := i.prepareIndex()
 	if err != nil {
 		return err
 	}
@@ -106,7 +150,7 @@ func (i *Ingestor) Ingest() error {
 	equalizer.Open(i.numActiveConnections)
 
 	// create pool of size N
-	p := pool.New(i.numActiveConnections)
+	p := pool.New(i.numWorkers)
 
 	// start progress tracking
 	progress.StartProgress()
@@ -140,11 +184,7 @@ func (i *Ingestor) Ingest() error {
 
 	// enable replication
 	if i.numReplicas > 0 {
-		err := elastic.EnableReplicas(
-			i.host,
-			i.port,
-			i.index,
-			i.numReplicas)
+		err := i.enableReplicas()
 		if errs != nil {
 			return err
 		}
@@ -152,26 +192,23 @@ func (i *Ingestor) Ingest() error {
 	return nil
 }
 
-// Workers
-
 func getReader(reader io.Reader, compression string) (io.Reader, error) {
 	// use compression based reader if specified
 	switch compression {
 	case "gzip":
 		return gzip.NewReader(reader)
+	case "bzip2":
+		return bzip2.NewReader(reader), nil
+	case "flate":
+		return flate.NewReader(reader), nil
+	case "zlib":
+		return zlib.NewReader(reader)
 	default:
 		return reader, nil
 	}
 }
 
-func (i *Ingestor) newRequest() (*equalizer.Request, error) {
-	return equalizer.NewRequest(
-		i.host,
-		i.port,
-		i.index)
-}
-
-func (i *Ingestor) newBulkIndexRequest(line string) (*es.BulkIndexRequest, error) {
+func (i *Ingestor) newBulkIndexRequest(line string) (*elastic.BulkIndexRequest, error) {
 	// set data for document
 	err := i.document.SetData(line)
 	if err != nil {
@@ -182,24 +219,30 @@ func (i *Ingestor) newBulkIndexRequest(line string) (*es.BulkIndexRequest, error
 	if err != nil {
 		return nil, err
 	}
+	// gracefully handle nil id
+	if id == "" {
+		return nil, nil
+	}
 	// get type from document
 	typ, err := i.document.GetType()
 	if err != nil {
 		return nil, err
+	}
+	// gracefully handle nil type
+	if typ == "" {
+		return nil, nil
 	}
 	// get source from document
 	source, err := i.document.GetSource()
 	if err != nil {
 		return nil, err
 	}
-	if source != nil {
-		// create index action
-		return es.NewBulkIndexRequest().
-			Id(id).
-			Type(typ).
-			Doc(source), nil
+	// gracefully handle nil source
+	if source == nil {
+		return nil, nil
 	}
-	return nil, nil
+	// create index action
+	return elastic.NewBulkIndexRequest().Id(id).Type(typ).Doc(source), nil
 }
 
 func (i *Ingestor) newlineWorker() pool.Worker {
@@ -219,10 +262,7 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 
 		for {
 			// create a new bulk request object
-			bulk, err := i.newRequest()
-			if err != nil {
-				return err
-			}
+			bulk := equalizer.NewRequest(i.client, i.index)
 
 			// begin reading file, line by line
 			for scanner.Scan() {

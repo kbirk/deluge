@@ -1,5 +1,9 @@
 package deluge
 
+import (
+	"gopkg.in/olivere/elastic.v3"
+)
+
 // IngestorOptionFunc is a function that configures an Ingestor. It is used in
 // NewIngestor.
 type IngestorOptionFunc func(*Ingestor) error
@@ -24,11 +28,10 @@ func SetInput(input Input) IngestorOptionFunc {
 	}
 }
 
-// SetURL sets the elasticsearch endpoint url.
-func SetURL(host, port string) IngestorOptionFunc {
+// SetClient sets the elasticsearch client.
+func SetClient(client *elastic.Client) IngestorOptionFunc {
 	return func(i *Ingestor) error {
-		i.host = host
-		i.port = port
+		i.client = client
 		return nil
 	}
 }
@@ -75,7 +78,8 @@ func ClearExistingIndex(clearExisting bool) IngestorOptionFunc {
 	}
 }
 
-// SetCompression sets the compression type for the input files.
+// SetCompression sets the compression type for the input files. Supports:
+// "bzip2", "flate", "gzip", "zlib".
 func SetCompression(compression string) IngestorOptionFunc {
 	return func(i *Ingestor) error {
 		i.compression = compression

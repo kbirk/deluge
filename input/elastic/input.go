@@ -6,41 +6,37 @@ import (
 	"fmt"
 	"io"
 
-	e "gopkg.in/olivere/elastic.v3"
+	"gopkg.in/olivere/elastic.v3"
 
 	"github.com/unchartedsoftware/deluge"
-	es "github.com/unchartedsoftware/deluge/elastic"
 	"github.com/unchartedsoftware/deluge/util"
 )
 
 // Input represents an input type for reading files off a filesystem.
 type Input struct {
-	cursor   *e.ScanCursor
-	host     string
-	port     string
+	cursor   *elastic.ScanCursor
 	index    string
 	numDocs  int64
 	byteSize int64
 }
 
 // NewInput instantiates a new instance of a file input.
-func NewInput(host, port, index string, scanSize int) (deluge.Input, error) {
+func NewInput(client *elastic.Client, index string, scanSize int) (deluge.Input, error) {
 	// get stats about the index
-	stats, err := es.IndexStats(host, port, index)
+	stats, err := client.IndexStats(index).Do()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error occured while querying index stats for `%s`: %v",
+			index,
+			err)
 	}
 	// don't access by index name, it won't work if this is an alias to an
 	// index. Since we are doing a query for a specific index already, there
 	// should be only one index in the response.
 	if len(stats.Indices) < 1 {
-		return nil, fmt.Errorf("Index `%s:%s/%s` does not exist",
-			host,
-			port,
-			index)
+		return nil, fmt.Errorf("Index `%s` does not exist", index)
 	}
 	// grab the first index in the map (there should only be one)
-	var indexStats *e.IndexStats
+	var indexStats *elastic.IndexStats
 	for _, value := range stats.Indices {
 		indexStats = value
 		break
@@ -60,14 +56,12 @@ func NewInput(host, port, index string, scanSize int) (deluge.Input, error) {
 		byteSize = indexStats.Primaries.Store.SizeInBytes
 	}
 	// create the scan cursor
-	cursor, err := es.Scan(host, port, index, scanSize)
+	cursor, err := client.Scan(index).Size(scanSize).Do()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error occured whiling scanning: %v", err)
 	}
 	return &Input{
 		cursor:   cursor,
-		host:     host,
-		port:     port,
 		index:    index,
 		numDocs:  numDocs,
 		byteSize: byteSize,
@@ -77,7 +71,7 @@ func NewInput(host, port, index string, scanSize int) (deluge.Input, error) {
 // Next returns the io.Reader to scan the index for more docs.
 func (i *Input) Next() (io.Reader, error) {
 	res, err := i.cursor.Next()
-	if err == e.EOS {
+	if err == elastic.EOS {
 		// End of stream (or scan)
 		return nil, io.EOF
 	}
@@ -105,9 +99,7 @@ func (i *Input) Next() (io.Reader, error) {
 
 // Summary returns a string containing summary information.
 func (i *Input) Summary() string {
-	return fmt.Sprintf("Input `%s:%s/%s` contains %d documents containing %s",
-		i.host,
-		i.port,
+	return fmt.Sprintf("Input `%s` contains %d documents containing %s",
 		i.index,
 		i.numDocs,
 		util.FormatBytes(i.byteSize))
