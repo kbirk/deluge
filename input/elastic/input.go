@@ -30,20 +30,29 @@ func NewInput(host, port, index string, scanSize int) (deluge.Input, error) {
 	if err != nil {
 		return nil, err
 	}
-	// ensure index exists
-	indexStats, ok := stats.Indices[index]
-	if !ok {
+	// don't access by index name, it won't work if this is an alias to an
+	// index. Since we are doing a query for a specific index already, there
+	// should be only one index in the response.
+	if len(stats.Indices) < 1 {
 		return nil, fmt.Errorf("Index `%s:%s/%s` does not exist",
 			host,
 			port,
 			index)
 	}
+	// grab the first index in the map (there should only be one)
+	var indexStats *e.IndexStats
+	for _, value := range stats.Indices {
+		indexStats = value
+		break
+	}
+	// get number of documents
 	numDocs := int64(0)
 	// ensure no nil pointers
 	if indexStats.Primaries != nil &&
 		indexStats.Primaries.Docs != nil {
 		numDocs = indexStats.Primaries.Docs.Count
 	}
+	// get the btye size
 	byteSize := int64(0)
 	// ensure no nil pointers
 	if indexStats.Primaries != nil &&

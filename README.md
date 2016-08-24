@@ -6,6 +6,13 @@
 
 Requires the [Go](https://golang.org/) programming language binaries with the `GOPATH` environment variable specified.
 
+## Features
+
+- Concurrent input loading and parsing via go-routine worker pool
+- Sustainable Elasticsearch ingestion via fixed size connection pool and back-pressure
+- Configurable Error thresholding to prevent hard crashes on sporadic bad data
+- Clean, simple, and highly extensible interfaces for customizable ingests
+
 ## Installation
 
 ##### Using `go get`:
@@ -30,7 +37,7 @@ NOTE: Requires [Glide](https://glide.sh) along with [Go](https://golang.org/) ve
 
 ## Usage
 
-This package provides facilities for customizable bulk ingests of data into [elasticsearch](https://github.com/elastic/elasticsearch).
+This package provides facilities for customizable bulk ingests of data into [Elasticsearch](https://github.com/elastic/elasticsearch).
 
 ## Example
 
