@@ -12,10 +12,6 @@ import (
 	"github.com/unchartedsoftware/deluge/util"
 )
 
-const (
-	user = "deluge"
-)
-
 // Input represents an HDFS input type.
 type Input struct {
 	endpoint string

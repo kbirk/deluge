@@ -12,7 +12,6 @@ all:
 	@echo "  lint          - lint the source code"
 	@echo "  test          - test the source code"
 	@echo "  fmt           - format the source code"
-	@echo ""
 	@echo "  install       - install vendored dependencies"
 
 lint:
