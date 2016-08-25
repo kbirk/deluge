@@ -113,7 +113,7 @@ func main() {
 	// Create the document type
 	document := sample.NewDocument()
 
-	// Create the input type
+	// Create a filesystem input type
 	input := file.NewInput(
 		"/path/to/data",
 		[ "files", "or", "dirs", "to", "exclude" ])

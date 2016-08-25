@@ -18,12 +18,11 @@ const (
 
 // Input represents an HDFS input type.
 type Input struct {
-	host    string
-	port    string
-	path    string
-	client  *hdfs.Client
-	index   int
-	sources []*Source
+	endpoint string
+	path     string
+	client   *hdfs.Client
+	index    int
+	sources  []*Source
 }
 
 // Source represents an HDFS file source.
@@ -62,18 +61,12 @@ func getInfo(client *hdfs.Client, path string, excludes []string) ([]*Source, er
 }
 
 // NewInput instantiates a new instance of a file input.
-func NewInput(host, port, path string, excludes []string) (deluge.Input, error) {
-	client, err := hdfs.NewForUser(host+":"+port, user)
-	if err != nil {
-		return nil, err
-	}
+func NewInput(client *hdfs.Client, path string, excludes []string) (deluge.Input, error) {
 	sources, err := getInfo(client, path, excludes)
 	if err != nil {
 		return nil, err
 	}
 	return &Input{
-		host:    host,
-		port:    port,
 		path:    path,
 		client:  client,
 		sources: sources,
@@ -101,9 +94,7 @@ func (i *Input) Summary() string {
 	for _, source := range i.sources {
 		totalBytes += source.file.Size()
 	}
-	return fmt.Sprintf("Input `%s:%s/%s` contains %d files containing %s",
-		i.host,
-		i.port,
+	return fmt.Sprintf("Input `%s` contains %d files containing %s",
 		i.path,
 		len(i.sources),
 		util.FormatBytes(totalBytes))
