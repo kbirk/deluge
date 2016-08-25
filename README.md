@@ -2,9 +2,9 @@
 
 > Fast and sustainable Elasticsearch ingestion, migration, and cloning library.
 
-## Dependencies
+## Usage
 
-Requires the [Go](https://golang.org/) programming language binaries with the `GOPATH` environment variable specified.
+This package provides facilities for customizable bulk ingests of data into [Elasticsearch](https://github.com/elastic/elasticsearch).
 
 ## Features
 
@@ -12,6 +12,10 @@ Requires the [Go](https://golang.org/) programming language binaries with the `G
 - Sustainable ingestion rate via fixed-size connection pool and back-pressure
 - Configurable error thresholding to prevent hard crashes on sporadic parsing errors
 - Clean, simple, and highly extensible interfaces for customizable ingests
+
+## Dependencies
+
+Requires the [Go](https://golang.org/) programming language binaries with the `GOPATH` environment variable specified.
 
 ## Installation
 
@@ -34,10 +38,6 @@ glide get github.com/unchartedsoftware/deluge
 ```
 
 NOTE: Requires [Glide](https://glide.sh) along with [Go](https://golang.org/) version 1.6+, or version 1.5 with the `GO15VENDOREXPERIMENT` environment variable set to `1`.
-
-## Usage
-
-This package provides facilities for customizable bulk ingests of data into [Elasticsearch](https://github.com/elastic/elasticsearch).
 
 ## Example
 
