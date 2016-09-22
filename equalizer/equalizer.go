@@ -18,6 +18,10 @@ var (
 	maxNumRequests int
 )
 
+// CallbackFunc represents an simple callback function to be executed after a
+// successful send.
+type CallbackFunc func()
+
 // Open initiializes the equalizer and readies it for sending requests.
 func Open(size int) {
 	// get max number of requests
@@ -60,9 +64,13 @@ func throttle(took uint64) {
 	}
 }
 
-func forwardRequest(req *Request) {
+func forwardRequest(req *Request, fn CallbackFunc) {
 	throttle(req.took)
 	took, err := req.Send()
+	if fn != nil && err == nil {
+		// only execute callback on success
+		fn()
+	}
 	measure(took)
 	ready <- err
 	waitGroup.Done()
@@ -71,14 +79,14 @@ func forwardRequest(req *Request) {
 // Send dispatches a request through the equalizer. This call will wait on
 // pending requests, and if said pending requests results in an error, will
 // return it.
-func Send(req *Request) error {
+func Send(req *Request, fn CallbackFunc) error {
 	req.stamp()
 	err := <-ready
 	if err != nil {
 		return err
 	}
 	waitGroup.Add(1)
-	go forwardRequest(req)
+	go forwardRequest(req, fn)
 	return nil
 }
 
