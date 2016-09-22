@@ -298,24 +298,28 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 			// add total bytes
 			bytes += int64(bulk.EstimatedSizeInBytes())
 
+			// create the callback to be executed after this bulk request
+			// succeeds. This is required ensure that the correct `bytes`
+			// value is snapshotted.
+			callback := func(bytes int64) equalizer.CallbackFunc{
+				return func() {
+					// update and print current progress
+					progress.UpdateProgress(bytes)
+				}
+			}(bytes)
+
 			// send the request through the equalizer, this will wait until the
 			// equalizer determines ES is 'ready'.
 			// NOTE: Due to the asynchronous nature of the equalizer, error
 			// values returned here may not be caused from this worker
 			// goroutine.
-			err = equalizer.Send(bulk)
+			err = equalizer.Send(bulk, callback)
 			if err != nil {
 				// add error to internal slice
 				threshold.CheckErr(err, i.threshold)
 				// always return on bulk ingest error
 				return err
 			}
-			// update and print current progress
-			// NOTE: Due to the asynchronous nature of the equalizer, the
-			// request sent from this worker may not have actually been ingested
-			// by this time. However updating the progress with this workers
-			// payload size still gives a relatively accurate progress.
-			progress.UpdateProgress(bytes)
 
 		}
 		return nil
