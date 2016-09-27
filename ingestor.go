@@ -157,19 +157,8 @@ func (i *Ingestor) Ingest() error {
 
 	// launch the ingest job
 	err = p.Execute(i.newlineWorker(), i.input)
-
-	// log errors
-	errs := threshold.Errs()
-	if len(errs) > 0 {
-		log.Errorf("Failed ingesting %d documents", len(errs))
-		for _, err := range threshold.Errs() {
-			log.Error(err)
-		}
-	}
-
 	if err != nil {
-		// error threshold was surpassed, or there was a fatal error
-		// otherwise the pool would not return this error
+		// error threshold was surpassed or there was a fatal error
 		progress.EndProgress()
 		progress.PrintFailure()
 		return err
@@ -185,11 +174,21 @@ func (i *Ingestor) Ingest() error {
 	// enable replication
 	if i.numReplicas > 0 {
 		err := i.enableReplicas()
-		if errs != nil {
+		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// DocErrs returns all document ingest errors.
+func DocErrs() []error {
+	return threshold.Errs()
+}
+
+// SampleDocErrs returns an N sized sample of document ingest errors.
+func SampleDocErrs(n int) []error {
+	return threshold.SampleErrs(n)
 }
 
 func getReader(reader io.Reader, compression string) (io.Reader, error) {
@@ -251,7 +250,7 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 		// get decompress reader (if compression is specified / supported)
 		reader, err := getReader(next, i.compression)
 		if threshold.CheckErr(err, i.threshold) {
-			return err
+			return threshold.NewErr(i.threshold)
 		}
 
 		// scan file line by line
@@ -273,7 +272,7 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 				// create bulk index request
 				req, err := i.newBulkIndexRequest(line)
 				if threshold.CheckErr(err, i.threshold) {
-					return err
+					return threshold.NewErr(i.threshold)
 				}
 
 				// ensure that the request was created
@@ -301,7 +300,7 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 			// create the callback to be executed after this bulk request
 			// succeeds. This is required ensure that the correct `bytes`
 			// value is snapshotted.
-			callback := func(bytes int64) equalizer.CallbackFunc{
+			callback := func(bytes int64) equalizer.CallbackFunc {
 				return func() {
 					// update and print current progress
 					progress.UpdateProgress(bytes)
@@ -315,8 +314,6 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 			// goroutine.
 			err = equalizer.Send(bulk, callback)
 			if err != nil {
-				// add error to internal slice
-				threshold.CheckErr(err, i.threshold)
 				// always return on bulk ingest error
 				return err
 			}
