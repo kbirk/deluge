@@ -1,6 +1,6 @@
 # Deluge
 
-[![Build Status](https://travis-ci.org/unchartedsoftware/deluge.svg?branch=release-branch.v3)](https://travis-ci.org/unchartedsoftware/deluge)
+[![Build Status](https://travis-ci.org/unchartedsoftware/deluge.svg?branch=master)](https://travis-ci.org/unchartedsoftware/deluge)
 [![Godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](http://godoc.org/github.com/unchartedsoftware/deluge)
 
 > Fast and sustainable Elasticsearch ingestion, migration, and cloning.
