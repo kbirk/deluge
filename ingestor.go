@@ -34,7 +34,7 @@ const (
 // NewIngestor.
 type Ingestor struct {
 	input                Input
-	document             Document
+	documentCtor         Constructor
 	index                string
 	client               *elastic.Client
 	clearExisting        bool
@@ -87,8 +87,13 @@ func (i *Ingestor) prepareIndex() error {
 	}
 	// if index does not exist at this point, create it
 	if !indexExists || i.clearExisting {
+		// instantiate a new document
+		document, err := i.documentCtor()
+		if err != nil {
+			return err
+		}
 		// get the document mapping
-		mapping, err := i.document.GetMapping()
+		mapping, err := document.GetMapping()
 		if err != nil {
 			return err
 		}
@@ -125,16 +130,16 @@ func (i *Ingestor) Ingest() error {
 
 	// check that we have the required options set
 	if i.index == "" {
-		return fmt.Errorf("Ingestor `index` has not been set with SetIndex() option")
+		return fmt.Errorf("Ingestor index has not been set with SetIndex() option")
 	}
-	if i.document == nil {
-		return fmt.Errorf("Ingestor `document` has not been set with SetDocument() option")
+	if i.documentCtor == nil {
+		return fmt.Errorf("Ingestor document constructor has not been set with SetDocument() option")
 	}
 	if i.input == nil {
-		return fmt.Errorf("Ingestor `input` has not been set with SetInput() option")
+		return fmt.Errorf("Ingestor input has not been set with SetInput() option")
 	}
 	if i.client == nil {
-		return fmt.Errorf("Ingestor `client` has not been set with SetClient() option")
+		return fmt.Errorf("Ingestor Elasticsearch client has not been set with SetClient() option")
 	}
 
 	// print input summary
@@ -208,13 +213,18 @@ func getReader(reader io.Reader, compression string) (io.Reader, error) {
 }
 
 func (i *Ingestor) newBulkIndexRequest(line string) (*elastic.BulkIndexRequest, error) {
+	// instantiate a new document
+	document, err := i.documentCtor()
+	if err != nil {
+		return nil, err
+	}
 	// set data for document
-	err := i.document.SetData(line)
+	err = document.SetData(line)
 	if err != nil {
 		return nil, err
 	}
 	// get id from document
-	id, err := i.document.GetID()
+	id, err := document.GetID()
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +233,7 @@ func (i *Ingestor) newBulkIndexRequest(line string) (*elastic.BulkIndexRequest, 
 		return nil, nil
 	}
 	// get type from document
-	typ, err := i.document.GetType()
+	typ, err := document.GetType()
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +242,7 @@ func (i *Ingestor) newBulkIndexRequest(line string) (*elastic.BulkIndexRequest, 
 		return nil, nil
 	}
 	// get source from document
-	source, err := i.document.GetSource()
+	source, err := document.GetSource()
 	if err != nil {
 		return nil, err
 	}

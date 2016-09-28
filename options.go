@@ -9,10 +9,10 @@ import (
 type IngestorOptionFunc func(*Ingestor) error
 
 // SetDocument sets the document type for the ingest.
-func SetDocument(document Document) IngestorOptionFunc {
+func SetDocument(ctor Constructor) IngestorOptionFunc {
 	return func(i *Ingestor) error {
-		if document != nil {
-			i.document = document
+		if ctor != nil {
+			i.documentCtor = ctor
 		}
 		return nil
 	}

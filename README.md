@@ -15,7 +15,7 @@ This package provides facilities for customizable bulk ingests of data into [Ela
 
 ## Dependencies
 
-Requires the [Go](https://golang.org/) programming language binaries with the `GOPATH` environment variable specified.
+Requires the [Go](https://golang.org/) programming language binaries with the `GOPATH` environment variable specified and `$GOPATH/bin` in your `PATH`.
 
 ## Installation
 
@@ -57,8 +57,8 @@ type Document struct {
 }
 
 // NewDocument instantiates and returns a new document.
-func NewDocument() deluge.Document {
-	return &Document{}
+func NewDocument() (deluge.Document, error) {
+	return &Document{}, nil
 }
 
 // GetID returns the document's id.
@@ -110,9 +110,6 @@ func main() {
 	// Use all CPUs
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	// Create the document type
-	document := sample.NewDocument()
-
 	// Create a filesystem input type
 	input := file.NewInput(
 		"/path/to/data",
@@ -130,7 +127,7 @@ func main() {
 
 	// Create the ingestor object
 	ingestor, err := deluge.NewIngestor(
-		deluge.SetDocument(document)
+		deluge.SetDocument(sample.NewDocument)
 		deluge.SetInput(input),
 		deluge.SetClient(client),
 		deluge.SetIndex("test_index"),
