@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/unchartedsoftware/deluge"
 	"github.com/unchartedsoftware/deluge/input"
 	"github.com/unchartedsoftware/deluge/util"
 )
@@ -54,7 +53,7 @@ func getInfo(path string, excludes []string) ([]*Source, error) {
 }
 
 // NewInput instantiates a new instance of a file input.
-func NewInput(path string, excludes []string) (deluge.Input, error) {
+func NewInput(path string, excludes []string) (*Input, error) {
 	sources, err := getInfo(path, excludes)
 	if err != nil {
 		return nil, err

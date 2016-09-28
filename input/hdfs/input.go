@@ -7,7 +7,6 @@ import (
 
 	"github.com/colinmarc/hdfs"
 
-	"github.com/unchartedsoftware/deluge"
 	"github.com/unchartedsoftware/deluge/input"
 	"github.com/unchartedsoftware/deluge/util"
 )
@@ -57,7 +56,7 @@ func getInfo(client *hdfs.Client, path string, excludes []string) ([]*Source, er
 }
 
 // NewInput instantiates a new instance of a file input.
-func NewInput(client *hdfs.Client, path string, excludes []string) (deluge.Input, error) {
+func NewInput(client *hdfs.Client, path string, excludes []string) (*Input, error) {
 	sources, err := getInfo(client, path, excludes)
 	if err != nil {
 		return nil, err

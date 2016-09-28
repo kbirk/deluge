@@ -8,11 +8,10 @@ import (
 
 	"gopkg.in/olivere/elastic.v3"
 
-	"github.com/unchartedsoftware/deluge"
 	"github.com/unchartedsoftware/deluge/util"
 )
 
-// Input represents an input type for reading files off a filesystem.
+// Input represents an input type for scanning documents out of elasticsearch.
 type Input struct {
 	cursor   *elastic.ScanCursor
 	index    string
@@ -20,8 +19,8 @@ type Input struct {
 	byteSize int64
 }
 
-// NewInput instantiates a new instance of a file input.
-func NewInput(client *elastic.Client, index string, scanSize int) (deluge.Input, error) {
+// NewInput instantiates a new instance of an elasticsearch input.
+func NewInput(client *elastic.Client, index string, scanSize int) (*Input, error) {
 	// get stats about the index
 	stats, err := client.IndexStats(index).Do()
 	if err != nil {
