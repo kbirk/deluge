@@ -35,7 +35,7 @@ func tick() {
 			if elapsedSec > 0 {
 				bytesPerSec = currentBytes / elapsedSec
 			}
-			fmt.Printf("\rIngested %+8s at a rate of %+8sps, current duration: %v",
+			fmt.Printf("\rIngested %+8s at a rate of %+8sps, current duration: %+9v",
 				util.FormatBytes(currentBytes),
 				util.FormatBytes(bytesPerSec),
 				duration)
