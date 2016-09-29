@@ -158,7 +158,7 @@ func main() {
 ##### Clone the repository:
 
 ```bash
-mkdir $GOPATH/src/github.com/unchartedsoftware
+mkdir -p $GOPATH/src/github.com/unchartedsoftware
 cd $GOPATH/src/github.com/unchartedsoftware
 git clone git@github.com:unchartedsoftware/deluge.git
 ```
