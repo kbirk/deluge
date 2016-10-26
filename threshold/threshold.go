@@ -2,6 +2,7 @@ package threshold
 
 import (
 	"fmt"
+	"math"
 	"sync"
 	"sync/atomic"
 )
@@ -44,10 +45,14 @@ func Errs() []error {
 
 // SampleErrs returns an N sized sample of errors.
 func SampleErrs(n int) []error {
-	count := len(errs) / n
-	samples := make([]error, count)
-	for i := 0; i < count; i++ {
-		samples[i] = errs[i*count]
+	if len(errs) < n {
+		return errs[0:]
 	}
-	return samples
+	stride := float64(len(errs)) / float64(n)
+	samples := make([]error, n)
+	for i := 0; i < n; i++ {
+		index := int(math.Floor(float64(i) * stride))
+		samples[i] = errs[index]
+	}
+	return samples[0:]
 }
