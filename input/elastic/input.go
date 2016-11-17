@@ -24,7 +24,7 @@ func NewInput(client *elastic.Client, index string, scanSize int) (*Input, error
 	// get stats about the index
 	stats, err := client.IndexStats(index).Do()
 	if err != nil {
-		return nil, fmt.Errorf("Error occured while querying index stats for `%s`: %v",
+		return nil, fmt.Errorf("Error occurred while querying index stats for `%s`: %v",
 			index,
 			err)
 	}
@@ -57,7 +57,7 @@ func NewInput(client *elastic.Client, index string, scanSize int) (*Input, error
 	// create the scan cursor
 	cursor, err := client.Scan(index).Size(scanSize).Do()
 	if err != nil {
-		return nil, fmt.Errorf("Error occured whiling scanning: %v", err)
+		return nil, fmt.Errorf("Error occurred whiling scanning: %v", err)
 	}
 	return &Input{
 		cursor:   cursor,

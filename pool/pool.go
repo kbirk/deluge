@@ -86,7 +86,7 @@ func (p *Pool) Execute(worker Worker, work Work) error {
 	for {
 		err := <-p.ErrChan
 		if err != nil {
-			// error has occured, close the pool and return error
+			// error has occurred, close the pool and return error
 			return p.close(err)
 		}
 		next, err := work.Next()
@@ -95,7 +95,7 @@ func (p *Pool) Execute(worker Worker, work Work) error {
 			break
 		}
 		if err != nil {
-			// error has occured, close the pool and return error
+			// error has occurred, close the pool and return error
 			return p.close(err)
 		}
 		// continue passing files to workers

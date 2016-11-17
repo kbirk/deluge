@@ -1,7 +1,8 @@
 # Deluge
 
-[![Build Status](https://travis-ci.org/unchartedsoftware/deluge.svg?branch=master)](https://travis-ci.org/unchartedsoftware/deluge)
 [![Godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](http://godoc.org/github.com/unchartedsoftware/deluge)
+[![Build Status](https://travis-ci.org/unchartedsoftware/deluge.svg?branch=master)](https://travis-ci.org/unchartedsoftware/deluge)
+[![Go Report Card](https://goreportcard.com/badge/github.com/unchartedsoftware/deluge)](https://goreportcard.com/report/github.com/unchartedsoftware/deluge)
 
 > Fast and sustainable Elasticsearch ingestion, migration, and cloning.
 
@@ -11,8 +12,8 @@ This package provides facilities for customizable bulk ingests of data into [Ela
 
 ## Features
 
-- Concurrent input loading and parsing via go-routine worker pool
-- Sustainable ingestion rate via fixed-size connection pool and back-pressure
+- Concurrent input loading and parsing via goroutine worker pool
+- Sustainable long-term ingestion via fixed-size connection pool and back-pressure
 - Configurable error thresholding to prevent hard crashes on sporadic parsing errors
 - Clean, simple, and highly extensible interfaces for customizable ingests
 
@@ -77,14 +78,14 @@ func (d *Document) GetType() (string, error) {
 // GetMapping returns the document's mapping.
 func (d *Document) GetMapping() (string, error) {
 	return `{
-        "datum": {
+		"datum": {
 			"properties":{
-	            "description": {
-	                "type": "string"
-	            }
+				"description": {
+					"type": "string"
+				}
 			}
-        }
-    }`, nil
+		}
+	}`, nil
 }
 
 // GetSource returns the source portion of the document.

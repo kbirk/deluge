@@ -79,7 +79,7 @@ func (i *Ingestor) prepareIndex() error {
 		log.Infof("Deleting existing index `%s`", i.index)
 		res, err := i.client.DeleteIndex(i.index).Do()
 		if err != nil {
-			return fmt.Errorf("Error occured while deleting index: %v", err)
+			return fmt.Errorf("Error occurred while deleting index: %v", err)
 		}
 		if !res.Acknowledged {
 			return fmt.Errorf("Delete index request not acknowledged for index: `%s`", i.index)
@@ -103,7 +103,7 @@ func (i *Ingestor) prepareIndex() error {
 		log.Infof("Creating index `%s`", i.index)
 		res, err := i.client.CreateIndex(i.index).Body(body).Do()
 		if err != nil {
-			return fmt.Errorf("Error occured while creating index: %v", err)
+			return fmt.Errorf("Error occurred while creating index: %v", err)
 		}
 		if !res.Acknowledged {
 			return fmt.Errorf("Create index request not acknowledged for `%s`", i.index)
@@ -117,7 +117,7 @@ func (i *Ingestor) enableReplicas() error {
 	log.Infof("Enabling replicas for index `%s`", i.index)
 	res, err := i.client.IndexPutSettings(i.index).BodyString(body).Do()
 	if err != nil {
-		return fmt.Errorf("Error occured while enabling replicas: %v", err)
+		return fmt.Errorf("Error occurred while enabling replicas: %v", err)
 	}
 	if !res.Acknowledged {
 		return fmt.Errorf("Enable replication index request not acknowledged for index `%s`", i.index)
