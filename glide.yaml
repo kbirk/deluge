@@ -1,7 +1,7 @@
 package: github.com/unchartedsoftware/deluge
 import:
 - package: github.com/unchartedsoftware/plog
-  version: 24c9313ea3ff2a86868f9961420e5b72fb83a019
+  version: bbb4bc4151f23ea489aff06d2a27f10e1a935993
 - package: github.com/colinmarc/hdfs
   version: 1a4155475bdaa98f80f5e16c78a62f37de7c65f1
 - package: gopkg.in/olivere/elastic.v3

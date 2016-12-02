@@ -79,34 +79,49 @@ func (i *Ingestor) prepareIndex() error {
 		log.Infof("Deleting existing index `%s`", i.index)
 		res, err := i.client.DeleteIndex(i.index).Do()
 		if err != nil {
-			return fmt.Errorf("Error occurred while deleting index: %v", err)
+			return fmt.Errorf("Error occured while deleting index: %v", err)
 		}
 		if !res.Acknowledged {
 			return fmt.Errorf("Delete index request not acknowledged for index: `%s`", i.index)
 		}
 	}
+	// instantiate a new document
+	document, err := i.documentCtor()
+	if err != nil {
+		return err
+	}
+	// get the document mapping
+	mapping, err := document.GetMapping()
+	if err != nil {
+		return err
+	}
+	// get the document type name
+	typ, err := document.GetType()
+	if err != nil {
+		return err
+	}
 	// if index does not exist at this point, create it
 	if !indexExists || i.clearExisting {
-		// instantiate a new document
-		document, err := i.documentCtor()
-		if err != nil {
-			return err
-		}
-		// get the document mapping
-		mapping, err := document.GetMapping()
-		if err != nil {
-			return err
-		}
 		// prepare the create index body
 		body := fmt.Sprintf("{\"mappings\":%s,\"settings\":{\"number_of_replicas\":0}}", mapping)
-		// send the request
+		// send create index request
 		log.Infof("Creating index `%s`", i.index)
 		res, err := i.client.CreateIndex(i.index).Body(body).Do()
 		if err != nil {
-			return fmt.Errorf("Error occurred while creating index: %v", err)
+			return fmt.Errorf("Error occured while creating index: %v", err)
 		}
 		if !res.Acknowledged {
 			return fmt.Errorf("Create index request not acknowledged for `%s`", i.index)
+		}
+	} else {
+		// send put mapping request
+		log.Infof("Putting mapping `%s`", i.index)
+		res, err := i.client.PutMapping().Index(i.index).Type(typ).BodyString(mapping).Do()
+		if err != nil {
+			return fmt.Errorf("Error occured while updating mapping for index: %v", err)
+		}
+		if !res.Acknowledged {
+			return fmt.Errorf("Put mapping request not acknowledged for `%s`", i.index)
 		}
 	}
 	return nil

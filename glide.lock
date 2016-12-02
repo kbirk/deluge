@@ -1,24 +1,24 @@
-hash: a0ee843c7eacac0eb3dbb1f8f584856ebff4e4b949b36ccc723314ddc2923d5a
-updated: 2016-08-20T12:50:12.888944808-04:00
+hash: ec915389e98873918ff4be7cd7db63ef68d34cf1ef375cef8f11125f4c1765de
+updated: 2016-12-02T17:35:03.104834515-05:00
 imports:
 - name: github.com/colinmarc/hdfs
   version: 1a4155475bdaa98f80f5e16c78a62f37de7c65f1
   subpackages:
+  - protocol/hadoop_common
   - protocol/hadoop_hdfs
   - rpc
-  - protocol/hadoop_common
 - name: github.com/golang/protobuf
   version: f592bd283e9ef86337a432eb50e592278c3d534d
   subpackages:
   - proto
+- name: github.com/mattn/go-isatty
+  version: 66b8e73f3f5cda9f96b69efd03dd3d7fc4a5cdb8
 - name: github.com/mgutz/ansi
   version: c286dcecd19ff979eeb73ea444e479b903f2cfcb
-- name: github.com/Sirupsen/logrus
-  version: 08a8a7c27e3d058a8989316a850daad1c10bf4ab
 - name: github.com/unchartedsoftware/plog
-  version: 24c9313ea3ff2a86868f9961420e5b72fb83a019
+  version: bbb4bc4151f23ea489aff06d2a27f10e1a935993
 - name: golang.org/x/sys
-  version: a646d33e2ee3172a661fc09bca23bb4889a41bc8
+  version: 8f0908ab3b2457e2e15403d3697c9ef5cb4b57a9
   subpackages:
   - unix
 - name: gopkg.in/olivere/elastic.v3
