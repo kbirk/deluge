@@ -84,6 +84,17 @@ func (d *TSV) Int32(index int) (int32, bool) {
 	return 0, false
 }
 
+// Int returns the column as an int.
+func (d *CSV) Int(index int) (int, bool) {
+	if d.ColumnExists(index) {
+		val, err := strconv.ParseInt(d.Cols[index], 10, 64)
+		if err == nil {
+			return int(val), true
+		}
+	}
+	return 0, false
+}
+
 // String returns the column as a string.
 func (d *TSV) String(index int) (string, bool) {
 	if d.ColumnExists(index) {
