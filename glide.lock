@@ -1,28 +1,33 @@
-hash: ec915389e98873918ff4be7cd7db63ef68d34cf1ef375cef8f11125f4c1765de
-updated: 2016-12-02T17:35:03.104834515-05:00
+hash: d07452f1f2fbbc509b589e9101069f08ed0fc2278f3322eacd6034527175067d
+updated: 2017-01-29T19:59:05.931877009-05:00
 imports:
 - name: github.com/colinmarc/hdfs
-  version: 1a4155475bdaa98f80f5e16c78a62f37de7c65f1
+  version: af44627e2893a7e3195a2a399d7bf54e3ceb486b
   subpackages:
   - protocol/hadoop_common
   - protocol/hadoop_hdfs
   - rpc
 - name: github.com/golang/protobuf
-  version: f592bd283e9ef86337a432eb50e592278c3d534d
+  version: 8ee79997227bf9b34611aee7946ae64735e6fd93
   subpackages:
   - proto
 - name: github.com/mattn/go-isatty
-  version: 66b8e73f3f5cda9f96b69efd03dd3d7fc4a5cdb8
+  version: 30a891c33c7cde7b02a981314b4228ec99380cca
 - name: github.com/mgutz/ansi
   version: c286dcecd19ff979eeb73ea444e479b903f2cfcb
 - name: github.com/unchartedsoftware/plog
-  version: bbb4bc4151f23ea489aff06d2a27f10e1a935993
+  version: e7b290aff4666be1962aedc5dabf494c2e7818c7
+- name: golang.org/x/net
+  version: f2499483f923065a842d38eb4c7f1927e6fc6e6d
+  subpackages:
+  - context
+  - context/ctxhttp
 - name: golang.org/x/sys
-  version: 8f0908ab3b2457e2e15403d3697c9ef5cb4b57a9
+  version: d75a52659825e75fff6158388dddc6a5b04f9ba5
   subpackages:
   - unix
 - name: gopkg.in/olivere/elastic.v3
-  version: 787ebbb5a7600662bca364e4e8ca959f315e442f
+  version: 9da4058517104766446811c87c0890f26c03d945
   subpackages:
   - backoff
   - uritemplates

@@ -51,6 +51,8 @@ NOTE: Requires [Glide](https://glide.sh) along with [Go](https://golang.org/) ve
 package sample
 
 import (
+	"fmt"
+
 	"github.com/unchartedsoftware/deluge"
 	"github.com/unchartedsoftware/deluge/document"
 )
@@ -67,7 +69,11 @@ func NewDocument() (deluge.Document, error) {
 
 // GetID returns the document's id.
 func (d *Document) GetID() (string, error) {
-	return d.Cols[0], nil
+	id, ok := d.GetString(0)
+	if !ok {
+		return "", fmt.Errorf("no id found")
+	}
+	return id, nil
 }
 
 // GetType returns the document's type.
@@ -90,8 +96,12 @@ func (d *Document) GetMapping() (string, error) {
 
 // GetSource returns the source portion of the document.
 func (d *Document) GetSource() (interface{}, error) {
+	desc, ok := d.GetString(1)
+	if !ok {
+		return nil, fmt.Errorf("no description found")
+	}
 	return map[string]interface{}{
-		"description": d.Cols[1],
+		"description": desc,
 	}, nil
 }
 ```
