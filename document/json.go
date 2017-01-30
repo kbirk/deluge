@@ -60,8 +60,8 @@ func (d *JSON) Exists(path ...string) bool {
 	return ok
 }
 
-// GetChild returns the child under the given path.
-func (d *JSON) GetChild(path ...string) (map[string]interface{}, bool) {
+// Child returns the child under the given path.
+func (d *JSON) Child(path ...string) (map[string]interface{}, bool) {
 	c, ok := d.Get(path...)
 	if !ok {
 		return nil, false
@@ -73,8 +73,8 @@ func (d *JSON) GetChild(path ...string) (map[string]interface{}, bool) {
 	return child, true
 }
 
-// GetString returns a string property under the given path.
-func (d *JSON) GetString(path ...string) (string, bool) {
+// String returns a string property under the given path.
+func (d *JSON) String(path ...string) (string, bool) {
 	v, ok := d.Get(path...)
 	if !ok {
 		return "", false
@@ -86,8 +86,8 @@ func (d *JSON) GetString(path ...string) (string, bool) {
 	return val, true
 }
 
-// GetFloat64 returns a float64 property under the given path.
-func (d *JSON) GetFloat64(path ...string) (float64, bool) {
+// Float64 returns a float64 property under the given path.
+func (d *JSON) Float64(path ...string) (float64, bool) {
 	v, ok := d.Get(path...)
 	if !ok {
 		return 0, false
@@ -107,8 +107,8 @@ func (d *JSON) GetFloat64(path ...string) (float64, bool) {
 	return val, true
 }
 
-// GetBool returns a bool property under the given path.
-func (d *JSON) GetBool(path ...string) (bool, bool) {
+// Bool returns a bool property under the given path.
+func (d *JSON) Bool(path ...string) (bool, bool) {
 	v, ok := d.Get(path...)
 	if !ok {
 		return false, false
@@ -120,8 +120,8 @@ func (d *JSON) GetBool(path ...string) (bool, bool) {
 	return val, true
 }
 
-// GetArray returns an []interface{} property under the given path.
-func (d *JSON) GetArray(path ...string) ([]interface{}, bool) {
+// Array returns an []interface{} property under the given path.
+func (d *JSON) Array(path ...string) ([]interface{}, bool) {
 	v, ok := d.Get(path...)
 	if !ok {
 		return nil, false
@@ -133,9 +133,9 @@ func (d *JSON) GetArray(path ...string) ([]interface{}, bool) {
 	return val, true
 }
 
-// GetChildArray returns a []map[string]interface{} from the given path.
-func (d *JSON) GetChildArray(path ...string) ([]map[string]interface{}, bool) {
-	vs, ok := d.GetArray(path...)
+// ChildArray returns a []map[string]interface{} from the given path.
+func (d *JSON) ChildArray(path ...string) ([]map[string]interface{}, bool) {
+	vs, ok := d.Array(path...)
 	if !ok {
 		return nil, false
 	}
@@ -150,9 +150,9 @@ func (d *JSON) GetChildArray(path ...string) ([]map[string]interface{}, bool) {
 	return nodes, true
 }
 
-// GetStringArray returns a []string property under the given path.
-func (d *JSON) GetStringArray(path ...string) ([]string, bool) {
-	vs, ok := d.GetArray(path...)
+// StringArray returns a []string property under the given path.
+func (d *JSON) StringArray(path ...string) ([]string, bool) {
+	vs, ok := d.Array(path...)
 	if !ok {
 		return nil, false
 	}
@@ -167,9 +167,9 @@ func (d *JSON) GetStringArray(path ...string) ([]string, bool) {
 	return strs, true
 }
 
-// GetFloat64Array returns a []float64 property under the given path.
-func (d *JSON) GetFloat64Array(path ...string) ([]float64, bool) {
-	vs, ok := d.GetArray(path...)
+// Float64Array returns a []float64 property under the given path.
+func (d *JSON) Float64Array(path ...string) ([]float64, bool) {
+	vs, ok := d.Array(path...)
 	if !ok {
 		return nil, false
 	}
@@ -184,9 +184,9 @@ func (d *JSON) GetFloat64Array(path ...string) ([]float64, bool) {
 	return flts, true
 }
 
-// GetBoolArray returns a []bool property under the given path.
-func (d *JSON) GetBoolArray(path ...string) ([]bool, bool) {
-	vs, ok := d.GetArray(path...)
+// BoolArray returns a []bool property under the given path.
+func (d *JSON) BoolArray(path ...string) ([]bool, bool) {
+	vs, ok := d.Array(path...)
 	if !ok {
 		return nil, false
 	}

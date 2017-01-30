@@ -69,7 +69,7 @@ func NewDocument() (deluge.Document, error) {
 
 // GetID returns the document's id.
 func (d *Document) GetID() (string, error) {
-	id, ok := d.GetString(0)
+	id, ok := d.String(0)
 	if !ok {
 		return "", fmt.Errorf("no id found")
 	}
@@ -96,7 +96,7 @@ func (d *Document) GetMapping() (string, error) {
 
 // GetSource returns the source portion of the document.
 func (d *Document) GetSource() (interface{}, error) {
-	desc, ok := d.GetString(1)
+	desc, ok := d.String(1)
 	if !ok {
 		return nil, fmt.Errorf("no description found")
 	}
