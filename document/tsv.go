@@ -3,6 +3,7 @@ package document
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/unchartedsoftware/deluge/util/dsv"
 )
@@ -113,4 +114,37 @@ func (d *TSV) Bool(index int) (bool, bool) {
 		return false, true
 	}
 	return false, false
+}
+
+// Splits a string if the column exists.
+func (d *TSV) SplitString(cols []string, index int, delim string) ([]string, bool) {
+	if d.ColumnExists(index) {
+		str := cols[index]
+		if len(str) > 0 {
+			return strings.Split(str, delim), true
+		}
+	}
+	return nil, false
+}
+
+// Ints returns the column as an int slice.
+func (d *TSV) SplitInt(cols []string, index int, delim string) ([]int, bool) {
+	strings, success := d.SplitString(cols, index, delim)
+
+	if strings != nil {
+		// Parse the strings one by one.
+		ints := make([]int, len(strings))
+		for i := 0; i < len(strings); i++ {
+			val, err := strconv.ParseInt(d.Cols[index], 10, 64)
+			if err == nil {
+				ints[i] = int(val)
+			} else {
+				return nil, false
+			}
+		}
+
+		return ints, true
+	}
+
+	return nil, success
 }
