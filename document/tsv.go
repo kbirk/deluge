@@ -117,9 +117,9 @@ func (d *TSV) Bool(index int) (bool, bool) {
 }
 
 // Splits a string if the column exists.
-func (d *TSV) SplitString(cols []string, index int, delim string) ([]string, bool) {
+func (d *TSV) SplitString(index int, delim string) ([]string, bool) {
 	if d.ColumnExists(index) {
-		str := cols[index]
+		str := d.Cols[index]
 		if len(str) > 0 {
 			return strings.Split(str, delim), true
 		}
@@ -128,8 +128,8 @@ func (d *TSV) SplitString(cols []string, index int, delim string) ([]string, boo
 }
 
 // Ints returns the column as an int slice.
-func (d *TSV) SplitInt(cols []string, index int, delim string) ([]int, bool) {
-	strings, success := d.SplitString(cols, index, delim)
+func (d *TSV) SplitInt(index int, delim string) ([]int, bool) {
+	strings, success := d.SplitString(index, delim)
 
 	if strings != nil {
 		// Parse the strings one by one.
