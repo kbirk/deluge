@@ -135,7 +135,7 @@ func (d *TSV) SplitInt(index int, delim string) ([]int, bool) {
 		// Parse the strings one by one.
 		ints := make([]int, len(strings))
 		for i := 0; i < len(strings); i++ {
-			val, err := strconv.ParseInt(d.Cols[index], 10, 64)
+			val, err := strconv.ParseInt(strings[index], 10, 64)
 			if err == nil {
 				ints[i] = int(val)
 			} else {
@@ -144,6 +144,28 @@ func (d *TSV) SplitInt(index int, delim string) ([]int, bool) {
 		}
 
 		return ints, true
+	}
+
+	return nil, success
+}
+
+// Ints returns the column as an int slice.
+func (d *TSV) SplitFloat64(index int, delim string) ([]float64, bool) {
+	strings, success := d.SplitString(index, delim)
+
+	if strings != nil {
+		// Parse the strings one by one.
+		floats := make([]float64, len(strings))
+		for i := 0; i < len(strings); i++ {
+			val, err := strconv.ParseFloat(strings[index], 64)
+			if err == nil {
+				floats[i] = val
+			} else {
+				return nil, false
+			}
+		}
+
+		return floats, true
 	}
 
 	return nil, success
