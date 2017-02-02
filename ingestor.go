@@ -28,6 +28,7 @@ const (
 	defaultNumReplicas          = 1
 	defaultThreshold            = 0.01
 	defaultBulkByteSize         = 1024 * 1024 * 20
+	defaultScanBufferSize       = 1024 * 1024 * 2
 )
 
 // Ingestor is an Elasticsearch ingestor client. Create one by calling
@@ -44,6 +45,7 @@ type Ingestor struct {
 	compression          string
 	threshold            float64
 	bulkByteSize         int64
+	scanBufferSize       int
 }
 
 // NewIngestor instantiates and configures a new Ingestor instance.
@@ -57,6 +59,7 @@ func NewIngestor(options ...IngestorOptionFunc) (*Ingestor, error) {
 		numReplicas:          defaultNumReplicas,
 		threshold:            defaultThreshold,
 		bulkByteSize:         defaultBulkByteSize,
+		scanBufferSize:       defaultScanBufferSize,
 	}
 	// Run the options through it
 	for _, option := range options {
@@ -280,6 +283,8 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 
 		// scan file line by line
 		scanner := bufio.NewScanner(reader)
+		// allocate a large enough buffer
+		scanner.Buffer(make([]byte, i.scanBufferSize), i.scanBufferSize)
 
 		// total bytes sent
 		bytes := int64(0)
@@ -312,6 +317,12 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 						break
 					}
 				}
+			}
+
+			// check if scanner encountered an err
+			err := scanner.Err()
+			if threshold.CheckErr(err, i.threshold) {
+				return threshold.NewErr(i.threshold)
 			}
 
 			// if no actions, we are finished

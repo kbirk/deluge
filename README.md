@@ -150,6 +150,7 @@ func main() {
 		deluge.SetActiveConnections(16),
 		deluge.SetCompression("gzip"),
 		deluge.SetBulkByteSize(1024*1024*20),
+		deluge.SetScanBufferSize(1024*1024*2),
 		deluge.ClearExistingIndex(),
 		deluge.SetNumReplicas(1)),
 	if err != nil {

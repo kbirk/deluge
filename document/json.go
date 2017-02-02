@@ -3,7 +3,6 @@ package document
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 )
 
 // JSON represents a basic json based document.
@@ -94,14 +93,6 @@ func (d *JSON) Float64(path ...string) (float64, bool) {
 	}
 	val, ok := v.(float64)
 	if !ok {
-		// if it is a string value, cast it to float64
-		strval, ok := v.(string)
-		if ok {
-			val, err := strconv.ParseFloat(strval, 64)
-			if err == nil {
-				return val, true
-			}
-		}
 		return 0, false
 	}
 	return val, true

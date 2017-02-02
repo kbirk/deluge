@@ -102,3 +102,12 @@ func SetBulkByteSize(numBytes int64) IngestorOptionFunc {
 		return nil
 	}
 }
+
+// SetScanBufferSize sets the maximum number of bytes in the bufio.Scanner
+// a bulk index payload.
+func SetScanBufferSize(numBytes int) IngestorOptionFunc {
+	return func(i *Ingestor) error {
+		i.scanBufferSize = numBytes
+		return nil
+	}
+}
