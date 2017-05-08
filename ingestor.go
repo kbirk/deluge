@@ -46,7 +46,13 @@ type Ingestor struct {
 	threshold            float64
 	bulkByteSize         int64
 	scanBufferSize       int
+	documentParsedCallback DocumentParsedFunc
 }
+
+// Callback function type when a bulk document is parsed from source.
+// Passes the id & type separately as there is no way to pull that info
+// from the request.
+type DocumentParsedFunc func(id string, typ string, req *elastic.BulkIndexRequest)
 
 // NewIngestor instantiates and configures a new Ingestor instance.
 func NewIngestor(options ...IngestorOptionFunc) (*Ingestor, error) {
@@ -230,46 +236,48 @@ func getReader(reader io.Reader, compression string) (io.Reader, error) {
 	}
 }
 
-func (i *Ingestor) newBulkIndexRequest(line string) (*elastic.BulkIndexRequest, error) {
+// Create a new bulk index request. Return the id & type separately since those
+// are hidden in the request.
+func (i *Ingestor) newBulkIndexRequest(line string) (string, string, *elastic.BulkIndexRequest, error) {
 	// instantiate a new document
 	document, err := i.documentCtor()
 	if err != nil {
-		return nil, err
+		return "", "", nil, err
 	}
 	// set data for document
 	err = document.SetData(line)
 	if err != nil {
-		return nil, err
+		return "", "", nil, err
 	}
 	// get id from document
 	id, err := document.GetID()
 	if err != nil {
-		return nil, err
+		return "", "", nil, err
 	}
 	// gracefully handle nil id
 	if id == "" {
-		return nil, nil
+		return "", "", nil, nil
 	}
 	// get type from document
 	typ, err := document.GetType()
 	if err != nil {
-		return nil, err
+		return "", "", nil, err
 	}
 	// gracefully handle nil type
 	if typ == "" {
-		return nil, nil
+		return "", "", nil, nil
 	}
 	// get source from document
 	source, err := document.GetSource()
 	if err != nil {
-		return nil, err
+		return "", "", nil, err
 	}
 	// gracefully handle nil source
 	if source == nil {
-		return nil, nil
+		return "", "", nil, nil
 	}
 	// create index action
-	return elastic.NewBulkIndexRequest().Id(id).Type(typ).Doc(source), nil
+	return id, typ, elastic.NewBulkIndexRequest().Id(id).Type(typ).Doc(source), nil
 }
 
 func (i *Ingestor) newlineWorker() pool.Worker {
@@ -300,22 +308,27 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 				line := scanner.Text()
 
 				// create bulk index request
-				req, err := i.newBulkIndexRequest(line)
+				id, typ, req, err := i.newBulkIndexRequest(line)
 				if threshold.CheckErr(err, i.threshold) {
 					return threshold.NewErr(i.threshold)
 				}
 
 				// ensure that the request was created
 				if req != nil {
-					// add index action to bulk req
-					bulk.Add(req)
+					// Use callback if set otherwise add index action to bulk req
+					if i.documentParsedCallback != nil {
+						i.documentParsedCallback(id, typ, req)
+					} else {
+						bulk.Add(req)
+						// check if we have hit batch size limit
+						if bulk.EstimatedSizeInBytes() >= i.bulkByteSize {
+							// ready to send
+							break
+						}
+					}
+
 					// flag this document as successful
 					threshold.AddSuccess()
-					// check if we have hit batch size limit
-					if bulk.EstimatedSizeInBytes() >= i.bulkByteSize {
-						// ready to send
-						break
-					}
 				}
 			}
 

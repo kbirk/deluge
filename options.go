@@ -111,3 +111,12 @@ func SetScanBufferSize(numBytes int) IngestorOptionFunc {
 		return nil
 	}
 }
+
+// SetDocumentParsedCallback sets the callback to be used when a document is
+// parsed.
+func SetDocumentParsedCallback(callback DocumentParsedFunc) IngestorOptionFunc {
+	return func(i *Ingestor) error {
+		i.documentParsedCallback = callback
+		return nil
+	}
+}
