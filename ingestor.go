@@ -34,18 +34,18 @@ const (
 // Ingestor is an Elasticsearch ingestor client. Create one by calling
 // NewIngestor.
 type Ingestor struct {
-	input                Input
-	documentCtor         Constructor
-	index                string
-	client               *elastic.Client
-	clearExisting        bool
-	numActiveConnections int
-	numWorkers           int
-	numReplicas          int
-	compression          string
-	threshold            float64
-	bulkByteSize         int64
-	scanBufferSize       int
+	input                  Input
+	documentCtor           Constructor
+	index                  string
+	client                 *elastic.Client
+	clearExisting          bool
+	numActiveConnections   int
+	numWorkers             int
+	numReplicas            int
+	compression            string
+	threshold              float64
+	bulkByteSize           int64
+	scanBufferSize         int
 	documentParsedCallback DocumentParsedFunc
 }
 
