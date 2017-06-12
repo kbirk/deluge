@@ -1,16 +1,16 @@
 package deluge
 
 import (
-	"gopkg.in/olivere/elastic.v5"
+	"gopkg.in/olivere/elastic.v3"
 )
 
 // IngestorOptionFunc is a function that configures an Ingestor. It is used in
 // NewIngestor.
-type IngestorOptionFunc func(*Ingestor) error
+type IngestorOptionFuncV3 func(*IngestorV3) error
 
 // SetDocument sets the document type for the ingest.
-func SetDocument(ctor Constructor) IngestorOptionFunc {
-	return func(i *Ingestor) error {
+func SetDocumentV3(ctor Constructor) IngestorOptionFuncV3 {
+	return func(i *IngestorV3) error {
 		if ctor != nil {
 			i.documentCtor = ctor
 		}
@@ -19,8 +19,8 @@ func SetDocument(ctor Constructor) IngestorOptionFunc {
 }
 
 // SetInput sets the input type for the ingest.
-func SetInput(input Input) IngestorOptionFunc {
-	return func(i *Ingestor) error {
+func SetInputV3(input Input) IngestorOptionFuncV3 {
+	return func(i *IngestorV3) error {
 		if input != nil {
 			i.input = input
 		}
@@ -29,16 +29,16 @@ func SetInput(input Input) IngestorOptionFunc {
 }
 
 // SetClient sets the elasticsearch client.
-func SetClient(client *elastic.Client) IngestorOptionFunc {
-	return func(i *Ingestor) error {
+func SetClientV3(client *elastic.Client) IngestorOptionFuncV3 {
+	return func(i *IngestorV3) error {
 		i.client = client
 		return nil
 	}
 }
 
 // SetErrorThreshold sets the error threshold to stop the ingest at.
-func SetErrorThreshold(threshold float64) IngestorOptionFunc {
-	return func(i *Ingestor) error {
+func SetErrorThresholdV3(threshold float64) IngestorOptionFuncV3 {
+	return func(i *IngestorV3) error {
 		i.threshold = threshold
 		return nil
 	}
@@ -46,8 +46,8 @@ func SetErrorThreshold(threshold float64) IngestorOptionFunc {
 
 // SetActiveConnections sets the number of active connections to elasticsearch
 // allowed.
-func SetActiveConnections(numActiveConnections int) IngestorOptionFunc {
-	return func(i *Ingestor) error {
+func SetActiveConnectionsV3(numActiveConnections int) IngestorOptionFuncV3 {
+	return func(i *IngestorV3) error {
 		i.numActiveConnections = numActiveConnections
 		return nil
 	}
@@ -55,24 +55,24 @@ func SetActiveConnections(numActiveConnections int) IngestorOptionFunc {
 
 // SetNumReplicas sets the number of replicas to enable upon completion of
 // the ingest.
-func SetNumReplicas(numReplicas int) IngestorOptionFunc {
-	return func(i *Ingestor) error {
+func SetNumReplicasV3(numReplicas int) IngestorOptionFuncV3 {
+	return func(i *IngestorV3) error {
 		i.numReplicas = numReplicas
 		return nil
 	}
 }
 
 // SetNumWorkers sets the number of workers in the worker pool.
-func SetNumWorkers(numWorkers int) IngestorOptionFunc {
-	return func(i *Ingestor) error {
+func SetNumWorkersV3(numWorkers int) IngestorOptionFuncV3 {
+	return func(i *IngestorV3) error {
 		i.numWorkers = numWorkers
 		return nil
 	}
 }
 
 // ClearExistingIndex clears an existing index if specified.
-func ClearExistingIndex(clearExisting bool) IngestorOptionFunc {
-	return func(i *Ingestor) error {
+func ClearExistingIndexV3(clearExisting bool) IngestorOptionFuncV3 {
+	return func(i *IngestorV3) error {
 		i.clearExisting = clearExisting
 		return nil
 	}
@@ -80,24 +80,24 @@ func ClearExistingIndex(clearExisting bool) IngestorOptionFunc {
 
 // SetCompression sets the compression type for the input files. Supports:
 // "bzip2", "flate", "gzip", "zlib".
-func SetCompression(compression string) IngestorOptionFunc {
-	return func(i *Ingestor) error {
+func SetCompressionV3(compression string) IngestorOptionFuncV3 {
+	return func(i *IngestorV3) error {
 		i.compression = compression
 		return nil
 	}
 }
 
 // SetIndex sets the index name to create and ingest into.
-func SetIndex(index string) IngestorOptionFunc {
-	return func(i *Ingestor) error {
+func SetIndexV3(index string) IngestorOptionFuncV3 {
+	return func(i *IngestorV3) error {
 		i.index = index
 		return nil
 	}
 }
 
 // SetBulkByteSize sets the maximum number of bytes in a bulk index payload.
-func SetBulkByteSize(numBytes int64) IngestorOptionFunc {
-	return func(i *Ingestor) error {
+func SetBulkByteSizeV3(numBytes int64) IngestorOptionFuncV3 {
+	return func(i *IngestorV3) error {
 		i.bulkByteSize = numBytes
 		return nil
 	}
@@ -105,8 +105,8 @@ func SetBulkByteSize(numBytes int64) IngestorOptionFunc {
 
 // SetScanBufferSize sets the maximum number of bytes in the bufio.Scanner
 // a bulk index payload.
-func SetScanBufferSize(numBytes int) IngestorOptionFunc {
-	return func(i *Ingestor) error {
+func SetScanBufferSizeV3(numBytes int) IngestorOptionFuncV3 {
+	return func(i *IngestorV3) error {
 		i.scanBufferSize = numBytes
 		return nil
 	}

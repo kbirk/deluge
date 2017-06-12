@@ -113,7 +113,7 @@ package main
 
 import (
 	"runtime"
-	"gopkg.in/olivere/elastic.v3"
+	"gopkg.in/olivere/elastic.v5"
 	"github.com/unchartedsoftware/deluge"
 	"github.com/unchartedsoftware/deluge/input/file"
 	"github.com/username/example/sample"

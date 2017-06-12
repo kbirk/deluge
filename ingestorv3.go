@@ -2,16 +2,11 @@ package deluge
 
 import (
 	"bufio"
-	"compress/bzip2"
-	"compress/flate"
-	"compress/gzip"
-	"compress/zlib"
-	"context"
 	"fmt"
 	"io"
 
 	"github.com/unchartedsoftware/plog"
-	"gopkg.in/olivere/elastic.v5"
+	"gopkg.in/olivere/elastic.v3"
 
 	"github.com/unchartedsoftware/deluge/equalizer"
 	"github.com/unchartedsoftware/deluge/pool"
@@ -19,22 +14,9 @@ import (
 	"github.com/unchartedsoftware/deluge/util/progress"
 )
 
-const (
-	defaultHost                 = "localhost"
-	defaultPort                 = "9200"
-	defaultClearExisting        = true
-	defaultNumActiveConnections = 8
-	defaultNumWorkers           = 8
-	defaultCompression          = ""
-	defaultNumReplicas          = 1
-	defaultThreshold            = 0.01
-	defaultBulkByteSize         = 1024 * 1024 * 20
-	defaultScanBufferSize       = 1024 * 1024 * 2
-)
-
 // Ingestor is an Elasticsearch ingestor client. Create one by calling
 // NewIngestor.
-type Ingestor struct {
+type IngestorV3 struct {
 	input                Input
 	documentCtor         Constructor
 	index                string
@@ -50,9 +32,9 @@ type Ingestor struct {
 }
 
 // NewIngestor instantiates and configures a new Ingestor instance.
-func NewIngestor(options ...IngestorOptionFunc) (*Ingestor, error) {
+func NewIngestorV3(options ...IngestorOptionFuncV3) (*IngestorV3, error) {
 	// Set up the ingestor
-	i := &Ingestor{
+	i := &IngestorV3{
 		clearExisting:        defaultClearExisting,
 		compression:          defaultCompression,
 		numActiveConnections: defaultNumActiveConnections,
@@ -71,9 +53,9 @@ func NewIngestor(options ...IngestorOptionFunc) (*Ingestor, error) {
 	return i, nil
 }
 
-func (i *Ingestor) prepareIndex() error {
+func (i *IngestorV3) prepareIndex() error {
 	// check if index exists
-	indexExists, err := i.client.IndexExists(i.index).Do(context.Background())
+	indexExists, err := i.client.IndexExists(i.index).Do()
 	if err != nil {
 		return err
 	}
@@ -81,7 +63,7 @@ func (i *Ingestor) prepareIndex() error {
 	if indexExists && i.clearExisting {
 		// send the delete index request
 		log.Infof("Deleting existing index `%s`", i.index)
-		res, err := i.client.DeleteIndex(i.index).Do(context.Background())
+		res, err := i.client.DeleteIndex(i.index).Do()
 		if err != nil {
 			return fmt.Errorf("Error occured while deleting index: %v", err)
 		}
@@ -110,7 +92,7 @@ func (i *Ingestor) prepareIndex() error {
 		body := fmt.Sprintf("{\"mappings\":%s,\"settings\":{\"number_of_replicas\":0}}", mapping)
 		// send create index request
 		log.Infof("Creating index `%s`", i.index)
-		res, err := i.client.CreateIndex(i.index).Body(body).Do(context.Background())
+		res, err := i.client.CreateIndex(i.index).Body(body).Do()
 		if err != nil {
 			return fmt.Errorf("Error occured while creating index: %v", err)
 		}
@@ -120,7 +102,7 @@ func (i *Ingestor) prepareIndex() error {
 	} else {
 		// send put mapping request
 		log.Infof("Putting mapping `%s`", i.index)
-		res, err := i.client.PutMapping().Index(i.index).Type(typ).BodyString(mapping).Do(context.Background())
+		res, err := i.client.PutMapping().Index(i.index).Type(typ).BodyString(mapping).Do()
 		if err != nil {
 			return fmt.Errorf("Error occured while updating mapping for index: %v", err)
 		}
@@ -131,10 +113,10 @@ func (i *Ingestor) prepareIndex() error {
 	return nil
 }
 
-func (i *Ingestor) enableReplicas() error {
+func (i *IngestorV3) enableReplicas() error {
 	body := fmt.Sprintf("{\"index\":{\"number_of_replicas\":%d}}", i.numReplicas)
 	log.Infof("Enabling replicas for index `%s`", i.index)
-	res, err := i.client.IndexPutSettings(i.index).BodyString(body).Do(context.Background())
+	res, err := i.client.IndexPutSettings(i.index).BodyString(body).Do()
 	if err != nil {
 		return fmt.Errorf("Error occurred while enabling replicas: %v", err)
 	}
@@ -145,7 +127,7 @@ func (i *Ingestor) enableReplicas() error {
 }
 
 // Ingest will run the ingest job.
-func (i *Ingestor) Ingest() error {
+func (i *IngestorV3) Ingest() error {
 
 	// check that we have the required options set
 	if i.index == "" {
@@ -205,33 +187,7 @@ func (i *Ingestor) Ingest() error {
 	return nil
 }
 
-// DocErrs returns all document ingest errors.
-func DocErrs() []error {
-	return threshold.Errs()
-}
-
-// SampleDocErrs returns an N sized sample of document ingest errors.
-func SampleDocErrs(n int) []error {
-	return threshold.SampleErrs(n)
-}
-
-func getReader(reader io.Reader, compression string) (io.Reader, error) {
-	// use compression based reader if specified
-	switch compression {
-	case "gzip":
-		return gzip.NewReader(reader)
-	case "bzip2":
-		return bzip2.NewReader(reader), nil
-	case "flate":
-		return flate.NewReader(reader), nil
-	case "zlib":
-		return zlib.NewReader(reader)
-	default:
-		return reader, nil
-	}
-}
-
-func (i *Ingestor) newBulkIndexRequest(line string) (*elastic.BulkIndexRequest, error) {
+func (i *IngestorV3) newBulkIndexRequest(line string) (*elastic.BulkIndexRequest, error) {
 	// instantiate a new document
 	document, err := i.documentCtor()
 	if err != nil {
@@ -273,7 +229,7 @@ func (i *Ingestor) newBulkIndexRequest(line string) (*elastic.BulkIndexRequest, 
 	return elastic.NewBulkIndexRequest().Id(id).Type(typ).Doc(source), nil
 }
 
-func (i *Ingestor) newlineWorker() pool.Worker {
+func (i *IngestorV3) newlineWorker() pool.Worker {
 	return func(next io.Reader) error {
 
 		// get decompress reader (if compression is specified / supported)
@@ -292,7 +248,7 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 
 		for {
 			// create a new bulk request object
-			bulk := equalizer.NewRequest(i.client, i.index)
+			bulk := equalizer.NewRequestV3(i.client, i.index)
 
 			// begin reading file, line by line
 			for scanner.Scan() {
@@ -349,7 +305,7 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 			// NOTE: Due to the asynchronous nature of the equalizer, error
 			// values returned here may not be caused from this worker
 			// goroutine.
-			err = equalizer.Send(bulk, callback)
+			err = equalizer.SendV3(bulk, callback)
 			if err != nil {
 				// always return on bulk ingest error
 				return err

@@ -76,6 +76,18 @@ func forwardRequest(req *Request, fn CallbackFunc) {
 	waitGroup.Done()
 }
 
+func forwardRequestV3(req *RequestV3, fn CallbackFunc) {
+	throttle(req.took)
+	took, err := req.Send()
+	if fn != nil && err == nil {
+		// only execute callback on success
+		fn()
+	}
+	measure(took)
+	ready <- err
+	waitGroup.Done()
+}
+
 // Send dispatches a request through the equalizer. This call will wait on
 // pending requests, and if said pending requests results in an error, will
 // return it.
@@ -87,6 +99,20 @@ func Send(req *Request, fn CallbackFunc) error {
 	}
 	waitGroup.Add(1)
 	go forwardRequest(req, fn)
+	return nil
+}
+
+// SendV3 dispatches an ES3 request through the equalizer. This call will wait on
+// pending requests, and if said pending requests results in an error, will
+// return it.
+func SendV3(req *RequestV3, fn CallbackFunc) error {
+	req.stamp()
+	err := <-ready
+	if err != nil {
+		return err
+	}
+	waitGroup.Add(1)
+	go forwardRequestV3(req, fn)
 	return nil
 }
 

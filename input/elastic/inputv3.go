@@ -2,28 +2,27 @@ package elastic
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 
-	"gopkg.in/olivere/elastic.v5"
+	"gopkg.in/olivere/elastic.v3"
 
 	"github.com/unchartedsoftware/deluge/util"
 )
 
 // Input represents an input type for scanning documents out of elasticsearch.
-type Input struct {
-	cursor   *elastic.ScrollService
+type InputV3 struct {
+	cursor   *elastic.ScanCursor
 	index    string
 	numDocs  int64
 	byteSize int64
 }
 
-// NewInput instantiates a new instance of an elasticsearch input.
-func NewInput(client *elastic.Client, index string, scanSize int) (*Input, error) {
+// NewInputV3 instantiates a new instance of an elasticsearch input.
+func NewInputV3(client *elastic.Client, index string, scanSize int) (*InputV3, error) {
 	// get stats about the index
-	stats, err := client.IndexStats(index).Do(context.Background())
+	stats, err := client.IndexStats(index).Do()
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred while querying index stats for `%s`: %v",
 			index,
@@ -56,8 +55,11 @@ func NewInput(client *elastic.Client, index string, scanSize int) (*Input, error
 		byteSize = indexStats.Primaries.Store.SizeInBytes
 	}
 	// create the scan cursor
-	cursor := client.Scroll(index).Size(scanSize)
-	return &Input{
+	cursor, err := client.Scan(index).Size(scanSize).Do()
+	if err != nil {
+		return nil, fmt.Errorf("Error occurred whiling scanning: %v", err)
+	}
+	return &InputV3{
 		cursor:   cursor,
 		index:    index,
 		numDocs:  numDocs,
@@ -66,8 +68,12 @@ func NewInput(client *elastic.Client, index string, scanSize int) (*Input, error
 }
 
 // Next returns the io.Reader to scan the index for more docs.
-func (i *Input) Next() (io.Reader, error) {
-	res, err := i.cursor.Do(context.Background())
+func (i *InputV3) Next() (io.Reader, error) {
+	res, err := i.cursor.Next()
+	if err == elastic.EOS {
+		// End of stream (or scan)
+		return nil, io.EOF
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +97,7 @@ func (i *Input) Next() (io.Reader, error) {
 }
 
 // Summary returns a string containing summary information.
-func (i *Input) Summary() string {
+func (i *InputV3) Summary() string {
 	return fmt.Sprintf("Input `%s` contains %d documents containing %s",
 		i.index,
 		i.numDocs,
