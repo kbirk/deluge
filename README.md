@@ -41,7 +41,7 @@ This is the recommended way to install the package and ensures all transitive de
 glide get github.com/unchartedsoftware/deluge
 ```
 
-NOTE: Requires [Glide](https://glide.sh) along with [Go](https://golang.org/) version 1.6+.
+NOTE: Requires [Glide](https://glide.sh) along with [Go](https://golang.org/) version 1.7+.
 
 ## Example
 
