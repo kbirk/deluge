@@ -1,9 +1,5 @@
 package deluge
 
-import (
-	"gopkg.in/olivere/elastic.v3"
-)
-
 // IngestorOptionFunc is a function that configures an Ingestor. It is used in
 // NewIngestor.
 type IngestorOptionFunc func(*Ingestor) error
@@ -29,7 +25,7 @@ func SetInput(input Input) IngestorOptionFunc {
 }
 
 // SetClient sets the elasticsearch client.
-func SetClient(client *elastic.Client) IngestorOptionFunc {
+func SetClient(client Client) IngestorOptionFunc {
 	return func(i *Ingestor) error {
 		i.client = client
 		return nil

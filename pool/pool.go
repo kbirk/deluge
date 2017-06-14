@@ -2,9 +2,15 @@ package pool
 
 import (
 	"io"
-
-	"github.com/unchartedsoftware/deluge/input"
 )
+
+// Work represents work that is accepted by a worker.
+type Work interface {
+	Next() (io.Reader, error)
+}
+
+// Worker represents a designated worker function to batch in a pool.
+type Worker func(io.Reader) error
 
 // Pool represents a single goroutine pool for batching workers.
 type Pool struct {
@@ -90,7 +96,7 @@ func (p *Pool) Execute(worker Worker, work Work) error {
 			return p.close(err)
 		}
 		next, err := work.Next()
-		if err == input.ErrEOS {
+		if err == io.EOF {
 			// end of input stream, we are done
 			break
 		}
