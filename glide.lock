@@ -1,34 +1,37 @@
-hash: d07452f1f2fbbc509b589e9101069f08ed0fc2278f3322eacd6034527175067d
-updated: 2017-01-29T19:59:05.931877009-05:00
+hash: 681f17487933919c2d0988d22ef7727463e5ab184f5c0329ff89ae6bcef008ab
+updated: 2017-06-13T20:32:34.070587706-04:00
 imports:
 - name: github.com/colinmarc/hdfs
-  version: af44627e2893a7e3195a2a399d7bf54e3ceb486b
+  version: d9614569203878ff04bb4420b929923949e855fc
   subpackages:
   - protocol/hadoop_common
   - protocol/hadoop_hdfs
   - rpc
 - name: github.com/golang/protobuf
-  version: 8ee79997227bf9b34611aee7946ae64735e6fd93
+  version: e325f446bebc2998605911c0a2650d9920361d4a
   subpackages:
   - proto
+- name: github.com/mattn/go-colorable
+  version: ded68f7a9561c023e790de24279db7ebf473ea80
 - name: github.com/mattn/go-isatty
-  version: 30a891c33c7cde7b02a981314b4228ec99380cca
+  version: fc9e8d8ef48496124e79ae0df75490096eccf6fe
 - name: github.com/mgutz/ansi
-  version: c286dcecd19ff979eeb73ea444e479b903f2cfcb
+  version: 9520e82c474b0a04dd04f8a40959027271bab992
+- name: github.com/pkg/errors
+  version: c605e284fe17294bda444b34710735b29d1a9d90
 - name: github.com/unchartedsoftware/plog
-  version: e7b290aff4666be1962aedc5dabf494c2e7818c7
-- name: golang.org/x/net
-  version: f2499483f923065a842d38eb4c7f1927e6fc6e6d
-  subpackages:
-  - context
-  - context/ctxhttp
+  version: 34d2bbd3c0a9458feb0752af2b578a23eb8ddc4f
 - name: golang.org/x/sys
-  version: d75a52659825e75fff6158388dddc6a5b04f9ba5
+  version: 9ccfe848b9db8435a24c424abbc07a921adf1df5
   subpackages:
   - unix
 - name: gopkg.in/olivere/elastic.v3
-  version: 9da4058517104766446811c87c0890f26c03d945
+  version: d8c80d884c60d6844d3042cf1697998f34c25e37
   subpackages:
   - backoff
+  - uritemplates
+- name: gopkg.in/olivere/elastic.v5
+  version: f1fd7305d0b6270192b27010fe1193568b18e4b6
+  subpackages:
   - uritemplates
 testImports: []

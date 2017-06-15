@@ -10,12 +10,11 @@ import (
 	"io"
 
 	"github.com/unchartedsoftware/plog"
-	"gopkg.in/olivere/elastic.v3"
 
 	"github.com/unchartedsoftware/deluge/equalizer"
 	"github.com/unchartedsoftware/deluge/pool"
+	"github.com/unchartedsoftware/deluge/progress"
 	"github.com/unchartedsoftware/deluge/threshold"
-	"github.com/unchartedsoftware/deluge/util/progress"
 )
 
 const (
@@ -37,7 +36,7 @@ type Ingestor struct {
 	input                Input
 	documentCtor         Constructor
 	index                string
-	client               *elastic.Client
+	client               Client
 	clearExisting        bool
 	numActiveConnections int
 	numWorkers           int
@@ -50,8 +49,8 @@ type Ingestor struct {
 
 // NewIngestor instantiates and configures a new Ingestor instance.
 func NewIngestor(options ...IngestorOptionFunc) (*Ingestor, error) {
-	// Set up the ingestor
-	i := &Ingestor{
+	// instantiate the ingestor
+	ingestor := &Ingestor{
 		clearExisting:        defaultClearExisting,
 		compression:          defaultCompression,
 		numActiveConnections: defaultNumActiveConnections,
@@ -61,18 +60,18 @@ func NewIngestor(options ...IngestorOptionFunc) (*Ingestor, error) {
 		bulkByteSize:         defaultBulkByteSize,
 		scanBufferSize:       defaultScanBufferSize,
 	}
-	// Run the options through it
+	// run the options through it
 	for _, option := range options {
-		if err := option(i); err != nil {
+		if err := option(ingestor); err != nil {
 			return nil, err
 		}
 	}
-	return i, nil
+	return ingestor, nil
 }
 
 func (i *Ingestor) prepareIndex() error {
 	// check if index exists
-	indexExists, err := i.client.IndexExists(i.index).Do()
+	indexExists, err := i.client.IndexExists(i.index)
 	if err != nil {
 		return err
 	}
@@ -80,12 +79,9 @@ func (i *Ingestor) prepareIndex() error {
 	if indexExists && i.clearExisting {
 		// send the delete index request
 		log.Infof("Deleting existing index `%s`", i.index)
-		res, err := i.client.DeleteIndex(i.index).Do()
+		err := i.client.DeleteIndex(i.index)
 		if err != nil {
 			return fmt.Errorf("Error occured while deleting index: %v", err)
-		}
-		if !res.Acknowledged {
-			return fmt.Errorf("Delete index request not acknowledged for index: `%s`", i.index)
 		}
 	}
 	// instantiate a new document
@@ -105,40 +101,28 @@ func (i *Ingestor) prepareIndex() error {
 	}
 	// if index does not exist at this point, create it
 	if !indexExists || i.clearExisting {
-		// prepare the create index body
-		body := fmt.Sprintf("{\"mappings\":%s,\"settings\":{\"number_of_replicas\":0}}", mapping)
 		// send create index request
 		log.Infof("Creating index `%s`", i.index)
-		res, err := i.client.CreateIndex(i.index).Body(body).Do()
+		err := i.client.CreateIndex(i.index, mapping)
 		if err != nil {
 			return fmt.Errorf("Error occured while creating index: %v", err)
-		}
-		if !res.Acknowledged {
-			return fmt.Errorf("Create index request not acknowledged for `%s`", i.index)
 		}
 	} else {
 		// send put mapping request
 		log.Infof("Putting mapping `%s`", i.index)
-		res, err := i.client.PutMapping().Index(i.index).Type(typ).BodyString(mapping).Do()
+		err := i.client.PutMapping(i.index, typ, mapping)
 		if err != nil {
 			return fmt.Errorf("Error occured while updating mapping for index: %v", err)
-		}
-		if !res.Acknowledged {
-			return fmt.Errorf("Put mapping request not acknowledged for `%s`", i.index)
 		}
 	}
 	return nil
 }
 
 func (i *Ingestor) enableReplicas() error {
-	body := fmt.Sprintf("{\"index\":{\"number_of_replicas\":%d}}", i.numReplicas)
 	log.Infof("Enabling replicas for index `%s`", i.index)
-	res, err := i.client.IndexPutSettings(i.index).BodyString(body).Do()
+	err := i.client.EnableReplicas(i.index, i.numReplicas)
 	if err != nil {
 		return fmt.Errorf("Error occurred while enabling replicas: %v", err)
-	}
-	if !res.Acknowledged {
-		return fmt.Errorf("Enable replication index request not acknowledged for index `%s`", i.index)
 	}
 	return nil
 }
@@ -230,46 +214,55 @@ func getReader(reader io.Reader, compression string) (io.Reader, error) {
 	}
 }
 
-func (i *Ingestor) newBulkIndexRequest(line string) (*elastic.BulkIndexRequest, error) {
+func createProgressCallback(bytes int64) equalizer.CallbackFunc {
+	return func() {
+		// update and print current progress
+		progress.UpdateProgress(bytes)
+	}
+}
+
+func (i *Ingestor) addLineToBulkRequest(bulk BulkRequest, line string) (bool, error) {
 	// instantiate a new document
 	document, err := i.documentCtor()
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 	// set data for document
 	err = document.SetData(line)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 	// get id from document
 	id, err := document.GetID()
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 	// gracefully handle nil id
 	if id == "" {
-		return nil, nil
+		return false, nil
 	}
 	// get type from document
 	typ, err := document.GetType()
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 	// gracefully handle nil type
 	if typ == "" {
-		return nil, nil
+		return false, nil
 	}
 	// get source from document
 	source, err := document.GetSource()
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 	// gracefully handle nil source
 	if source == nil {
-		return nil, nil
+		return false, nil
 	}
-	// create index action
-	return elastic.NewBulkIndexRequest().Id(id).Type(typ).Doc(source), nil
+	// add document to bulk req
+	bulk.Add(typ, id, source)
+	// flag that the line was parsed successfully
+	return true, nil
 }
 
 func (i *Ingestor) newlineWorker() pool.Worker {
@@ -291,7 +284,7 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 
 		for {
 			// create a new bulk request object
-			bulk := equalizer.NewRequest(i.client, i.index)
+			bulk := i.client.NewBulkRequest(i.index)
 
 			// begin reading file, line by line
 			for scanner.Scan() {
@@ -300,15 +293,13 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 				line := scanner.Text()
 
 				// create bulk index request
-				req, err := i.newBulkIndexRequest(line)
+				success, err := i.addLineToBulkRequest(bulk, line)
 				if threshold.CheckErr(err, i.threshold) {
 					return threshold.NewErr(i.threshold)
 				}
 
 				// ensure that the request was created
-				if req != nil {
-					// add index action to bulk req
-					bulk.Add(req)
+				if success {
 					// flag this document as successful
 					threshold.AddSuccess()
 					// check if we have hit batch size limit
@@ -326,7 +317,7 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 			}
 
 			// if no actions, we are finished
-			if bulk.NumberOfActions() == 0 {
+			if bulk.Size() == 0 {
 				break
 			}
 
@@ -336,12 +327,7 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 			// create the callback to be executed after this bulk request
 			// succeeds. This is required ensure that the correct `bytes`
 			// value is snapshotted.
-			callback := func(bytes int64) equalizer.CallbackFunc {
-				return func() {
-					// update and print current progress
-					progress.UpdateProgress(bytes)
-				}
-			}(bytes)
+			callback := createProgressCallback(bytes)
 
 			// send the request through the equalizer, this will wait until the
 			// equalizer determines ES is 'ready'.

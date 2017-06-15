@@ -41,7 +41,7 @@ This is the recommended way to install the package and ensures all transitive de
 glide get github.com/unchartedsoftware/deluge
 ```
 
-NOTE: Requires [Glide](https://glide.sh) along with [Go](https://golang.org/) version 1.6+.
+NOTE: Requires [Glide](https://glide.sh) along with [Go](https://golang.org/) version 1.7+.
 
 ## Example
 
@@ -113,9 +113,11 @@ package main
 
 import (
 	"runtime"
-	"gopkg.in/olivere/elastic.v3"
+
 	"github.com/unchartedsoftware/deluge"
+	"github.com/unchartedsoftware/deluge/elastic/v2"
 	"github.com/unchartedsoftware/deluge/input/file"
+
 	"github.com/username/example/sample"
 )
 
@@ -136,7 +138,7 @@ func main() {
 		elastic.SetSniff(false),
 		elastic.SetGzip(true))
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
 
 	// Create the ingestor object
@@ -154,13 +156,23 @@ func main() {
 		deluge.ClearExistingIndex(),
 		deluge.SetNumReplicas(1)),
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
 
 	// Initiate a bulk ingest job
 	err = ingestor.Ingest()
 	if err != nil {
-		return err
+		// critical error or error ratio above threshold
+		log.Fatal(err)
+	}
+
+	// Check for any errors
+	errs := deluge.DocErrs()
+	if len(errs) > 0 {
+		// sample 10 errors
+		for _, err := range deluge.SampleDocErrs(10) {
+			log.Print(err)
+		}
 	}
 }
 ```

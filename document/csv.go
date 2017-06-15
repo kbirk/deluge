@@ -3,8 +3,9 @@ package document
 import (
 	"fmt"
 	"strconv"
+	"time"
 
-	"github.com/unchartedsoftware/deluge/util/dsv"
+	"github.com/unchartedsoftware/deluge/util"
 )
 
 // CSV represents a basic csv based document.
@@ -20,7 +21,7 @@ func (d *CSV) SetData(data interface{}) error {
 		return fmt.Errorf("Could not cast `%v` into type string", data)
 	}
 	// parse delimited fields
-	cols, err := dsv.ParseFields(line, ',')
+	cols, err := util.ParseFields(line, ',')
 	if err != nil {
 		return err
 	}
@@ -113,4 +114,16 @@ func (d *CSV) Bool(index int) (bool, bool) {
 		return false, true
 	}
 	return false, false
+}
+
+// Time returns the column as a time.Time using the provided layout to parse.
+func (d *CSV) Time(index int, layout string) (time.Time, bool) {
+	if d.ColumnExists(index) {
+		t, err := time.Parse(layout, d.Cols[index])
+		if err != nil {
+			return time.Time{}, false
+		}
+		return t, true
+	}
+	return time.Time{}, false
 }

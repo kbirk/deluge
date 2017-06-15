@@ -3,9 +3,6 @@ package deluge
 import (
 	"io"
 
-	h "github.com/colinmarc/hdfs"
-	es "gopkg.in/olivere/elastic.v3"
-
 	"github.com/unchartedsoftware/deluge/input/elastic"
 	"github.com/unchartedsoftware/deluge/input/file"
 	"github.com/unchartedsoftware/deluge/input/hdfs"
@@ -18,7 +15,7 @@ type Input interface {
 }
 
 // NewElasticInput instantiates a new instance of an elasticsearch input.
-func NewElasticInput(client *es.Client, index string, scanSize int) (Input, error) {
+func NewElasticInput(client elastic.Client, index string, scanSize int) (Input, error) {
 	return elastic.NewInput(client, index, scanSize)
 }
 
@@ -28,6 +25,6 @@ func NewFileInput(path string, excludes []string) (Input, error) {
 }
 
 // NewHDFSInput instantiates a new instance of a hdfs input.
-func NewHDFSInput(client *h.Client, path string, excludes []string) (Input, error) {
+func NewHDFSInput(client hdfs.Client, path string, excludes []string) (Input, error) {
 	return hdfs.NewInput(client, path, excludes)
 }

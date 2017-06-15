@@ -18,6 +18,12 @@ var (
 	maxNumRequests int
 )
 
+// Request represents a bulk request and its generation time.
+type Request interface {
+	Took() uint64
+	Send() (uint64, error)
+}
+
 // CallbackFunc represents an simple callback function to be executed after a
 // successful send.
 type CallbackFunc func()
@@ -64,8 +70,8 @@ func throttle(took uint64) {
 	}
 }
 
-func forwardRequest(req *Request, fn CallbackFunc) {
-	throttle(req.took)
+func forwardRequest(req Request, reqTook uint64, fn CallbackFunc) {
+	throttle(reqTook)
 	took, err := req.Send()
 	if fn != nil && err == nil {
 		// only execute callback on success
@@ -79,14 +85,14 @@ func forwardRequest(req *Request, fn CallbackFunc) {
 // Send dispatches a request through the equalizer. This call will wait on
 // pending requests, and if said pending requests results in an error, will
 // return it.
-func Send(req *Request, fn CallbackFunc) error {
-	req.stamp()
+func Send(req Request, fn CallbackFunc) error {
+	took := req.Took()
 	err := <-ready
 	if err != nil {
 		return err
 	}
 	waitGroup.Add(1)
-	go forwardRequest(req, fn)
+	go forwardRequest(req, took, fn)
 	return nil
 }
 

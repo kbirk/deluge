@@ -7,6 +7,10 @@ import (
 	"sync/atomic"
 )
 
+const (
+	minimumToCheck = 10
+)
+
 var (
 	errs    = make([]error, 0)
 	mu      = sync.Mutex{}
@@ -28,7 +32,12 @@ func CheckErr(err error, threshold float64) bool {
 	mu.Lock()
 	errs = append(errs, err)
 	numErrors := uint64(len(errs))
+	numTotal := numErrors + success
 	mu.Unlock()
+	// don't fail unless until a minimum number of docs have been processed
+	if numTotal < minimumToCheck {
+		return false
+	}
 	ratio := 1.0 - (float64(atomic.LoadUint64(&success)) / float64(numErrors))
 	return ratio > threshold
 }

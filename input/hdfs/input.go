@@ -5,17 +5,20 @@ import (
 	"io"
 	"os"
 
-	"github.com/colinmarc/hdfs"
-
-	"github.com/unchartedsoftware/deluge/input"
 	"github.com/unchartedsoftware/deluge/util"
 )
+
+// Client represents an HDFS client.
+type Client interface {
+	Open(string) (io.Reader, error)
+	ReadDir(string) ([]os.FileInfo, error)
+}
 
 // Input represents an HDFS input type.
 type Input struct {
 	endpoint string
 	path     string
-	client   *hdfs.Client
+	client   Client
 	index    int
 	sources  []*Source
 }
@@ -26,7 +29,7 @@ type Source struct {
 	path string
 }
 
-func getInfo(client *hdfs.Client, path string, excludes []string) ([]*Source, error) {
+func getInfo(client Client, path string, excludes []string) ([]*Source, error) {
 	// read target files
 	files, err := client.ReadDir(path)
 	if err != nil {
@@ -36,14 +39,14 @@ func getInfo(client *hdfs.Client, path string, excludes []string) ([]*Source, er
 	var sources []*Source
 	// for each file / dir
 	for _, file := range files {
-		if input.IsValidDir(file, excludes) {
+		if util.IsValidDir(file, excludes) {
 			// depth-first traversal into sub directories
 			children, err := getInfo(client, path+"/"+file.Name(), excludes)
 			if err != nil {
 				return nil, err
 			}
 			sources = append(sources, children...)
-		} else if input.IsValidFile(file, excludes) {
+		} else if util.IsValidFile(file, excludes) {
 			// add source
 			sources = append(sources, &Source{
 				file: file,
@@ -56,7 +59,7 @@ func getInfo(client *hdfs.Client, path string, excludes []string) ([]*Source, er
 }
 
 // NewInput instantiates a new instance of a file input.
-func NewInput(client *hdfs.Client, path string, excludes []string) (*Input, error) {
+func NewInput(client Client, path string, excludes []string) (*Input, error) {
 	sources, err := getInfo(client, path, excludes)
 	if err != nil {
 		return nil, err
@@ -72,7 +75,7 @@ func NewInput(client *hdfs.Client, path string, excludes []string) (*Input, erro
 // Next opens the file and returns the reader.
 func (i *Input) Next() (io.Reader, error) {
 	if i.index > len(i.sources)-1 {
-		return nil, input.ErrEOS
+		return nil, io.EOF
 	}
 	source := i.sources[i.index]
 	reader, err := i.client.Open(source.path + "/" + source.file.Name())
