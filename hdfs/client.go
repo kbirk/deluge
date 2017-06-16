@@ -20,9 +20,20 @@ func SetURL(url string) ClientOptionFunc {
 	}
 }
 
+// SetUser sets the HDFS user.
+func SetUser(user string) ClientOptionFunc {
+	return func(c *Client) error {
+		if user != "" {
+			c.user = user
+		}
+		return nil
+	}
+}
+
 // Client represents an HDFS client.
 type Client struct {
 	endpoint string
+	user     string
 	conn     *hdfs.Client
 }
 
@@ -39,7 +50,13 @@ func NewClient(options ...ClientOptionFunc) (*Client, error) {
 		}
 	}
 	// create underlying connection
-	conn, err := hdfs.New(client.endpoint)
+	var conn *hdfs.Client
+	var err error
+	if client.user != "" {
+		conn, err = hdfs.NewForUser(client.endpoint, client.user)
+	} else {
+		conn, err = hdfs.New(client.endpoint)
+	}
 	if err != nil {
 		return nil, err
 	}
