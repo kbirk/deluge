@@ -69,6 +69,11 @@ func (c *Client) Open(path string) (io.Reader, error) {
 	return c.conn.Open(path)
 }
 
+// Close closes the underlying connection.
+func (c *Client) Close() error {
+	return c.conn.Close()
+}
+
 // ReadDir reads the directory named by dirname and returns a list of sorted directory entries.
 func (c *Client) ReadDir(dirname string) ([]os.FileInfo, error) {
 	return c.conn.ReadDir(dirname)
