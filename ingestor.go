@@ -293,7 +293,7 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 				// read line of file
 				line := scanner.Text()
 
-				// create bulk index request
+				// add line to bulk index request
 				success, err := i.addLineToBulkRequest(bulk, line)
 				if threshold.CheckErr(err, i.threshold) {
 					return threshold.NewErr(i.threshold)
