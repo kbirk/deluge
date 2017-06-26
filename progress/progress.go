@@ -15,7 +15,9 @@ var (
 	startTime    time.Time
 	endTime      time.Time
 	currentBytes int64
+	currentDocs  int64
 	bytesPerSec  = int64(1)
+	docsPerSec   = int64(1)
 	mutex        = sync.Mutex{}
 	endChan      chan bool
 )
@@ -34,9 +36,11 @@ func tick() {
 
 		default:
 			// print the current progress
-			fmt.Printf("\rIngested %+9s at a rate of %+8sps, current duration: %+9v",
+			fmt.Printf("\rIngested %+9s (%d docs) at a rate of %+8sps (%d docs / sec), current duration: %+9v",
 				util.FormatBytes(currentBytes),
+				currentDocs,
 				util.FormatBytes(bytesPerSec),
+				docsPerSec,
 				duration())
 			// sleep for a second
 			time.Sleep(time.Second)
@@ -48,6 +52,7 @@ func tick() {
 func StartProgress() {
 	startTime = time.Now().Round(time.Second)
 	currentBytes = 0
+	currentDocs = 0
 	endChan = make(chan bool)
 	go tick()
 }
@@ -61,15 +66,19 @@ func EndProgress() {
 
 // UpdateProgress will update and print a human readable progress message for
 // a given task.
-func UpdateProgress(bytes int64) {
+func UpdateProgress(bytes, docs int64) {
 	mutex.Lock()
-	// increment the bytes
+	// increment the totals
 	currentBytes += bytes
+	currentDocs += docs
+
 	// set the current ingest speed
 	elapsedSec := int64(duration().Seconds())
 	if elapsedSec > 0 {
 		bytesPerSec = currentBytes / elapsedSec
+		docsPerSec = currentDocs / elapsedSec
 	}
+
 	mutex.Unlock()
 	runtime.Gosched()
 }

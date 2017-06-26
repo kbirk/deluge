@@ -214,10 +214,10 @@ func getReader(reader io.Reader, compression string) (io.Reader, error) {
 	}
 }
 
-func createProgressCallback(bytes int64) equalizer.CallbackFunc {
+func createProgressCallback(bytes, docs int64) equalizer.CallbackFunc {
 	return func() {
 		// update and print current progress
-		progress.UpdateProgress(bytes)
+		progress.UpdateProgress(bytes, docs)
 	}
 }
 
@@ -279,10 +279,11 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 		// allocate a large enough buffer
 		scanner.Buffer(make([]byte, i.scanBufferSize), i.scanBufferSize)
 
-		// total bytes sent
-		bytes := int64(0)
-
 		for {
+			// total bytes sent
+			bytes := int64(0)
+			docs := int64(0)
+
 			// create a new bulk request object
 			bulk := i.client.NewBulkRequest(i.index)
 
@@ -300,6 +301,8 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 
 				// ensure that the request was created
 				if success {
+					docs = docs + 1
+
 					// flag this document as successful
 					threshold.AddSuccess()
 					// check if we have hit batch size limit
@@ -327,7 +330,7 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 			// create the callback to be executed after this bulk request
 			// succeeds. This is required ensure that the correct `bytes`
 			// value is snapshotted.
-			callback := createProgressCallback(bytes)
+			callback := createProgressCallback(bytes, docs)
 
 			// send the request through the equalizer, this will wait until the
 			// equalizer determines ES is 'ready'.
