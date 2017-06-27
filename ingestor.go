@@ -45,6 +45,7 @@ type Ingestor struct {
 	threshold            float64
 	bulkByteSize         int64
 	scanBufferSize       int
+	optimiseBulkSize     bool
 }
 
 // NewIngestor instantiates and configures a new Ingestor instance.
@@ -161,6 +162,13 @@ func (i *Ingestor) Ingest() error {
 
 	// start progress tracking
 	progress.StartProgress()
+
+	// start optimising if signalled.
+	if i.optimiseBulkSize {
+		hc := NewHillClimber(1.5, 1048576, 204800, 1024*1024, 60*1024*1024)
+		s := NewBulkSize(i)
+		go hc.Optimise(s)
+	}
 
 	// launch the ingest job
 	err = p.Execute(i.newlineWorker(), i.input)

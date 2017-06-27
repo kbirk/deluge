@@ -64,6 +64,15 @@ func EndProgress() {
 	close(endChan)
 }
 
+// GetDocCount returns the current doc count.
+func GetDocCount() int64 {
+	mutex.Lock()
+	docs := currentDocs
+	mutex.Unlock()
+
+	return docs
+}
+
 // UpdateProgress will update and print a human readable progress message for
 // a given task.
 func UpdateProgress(bytes, docs int64) {
