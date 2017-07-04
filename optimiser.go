@@ -8,11 +8,11 @@ import (
 )
 
 const (
-	scoringDuration     = 10
-	numberOfRuns        = 5
+	scoringDuration     = 30
+	numberOfRuns        = 3
 	defaultAcceleration = float64(1.5)
-	defaultStep         = float64(1024 * 1024)
-	defaultEpsilon      = int64(1024 * 200)
+	defaultStep         = float64(1024 * 1024 * 2)
+	defaultEpsilon      = int64(1024 * 500)
 	defaultMaxStep      = int64(1024 * 1024 * 4)
 	defaultMinValue     = int64(1024 * 1024)
 	defaultMaxValue     = int64(1024 * 1024 * 60)
@@ -70,18 +70,16 @@ type HillClimber struct {
 	epsilon      int64
 	minValue     int64
 	maxValue     int64
-	maxStep      int64
 }
 
 // NewHillClimber creates a new HillClimber instance.
-func NewHillClimber(options ...OptimiserOptionFunc) (*HillClimber, error) {
+func NewHillClimber(options ...HillClimberOptionFunc) (*HillClimber, error) {
 	hc := &HillClimber{
 		acceleration: defaultAcceleration,
 		step:         defaultStep,
 		epsilon:      defaultEpsilon,
 		minValue:     defaultMinValue,
 		maxValue:     defaultMaxValue,
-		maxStep:      defaultMaxStep,
 	}
 
 	for _, option := range options {
@@ -151,10 +149,6 @@ func (hc *HillClimber) Optimise(solution Solution) {
 			newValue = hc.keepInBounds(newValue)
 			log.Infof("New best score. Updating value to %d", newValue)
 			solution.SetValue(newValue)
-			hc.step = hc.step * hc.acceleration
-			if hc.step > float64(hc.maxStep) {
-				hc.step = float64(hc.maxStep)
-			}
 		}
 	}
 	log.Infof("Done optimization run.")
@@ -184,10 +178,12 @@ func (hc *HillClimber) findWinner(runResults []uint) int {
 	return bestIndex
 }
 
-type OptimiserOptionFunc func(*HillClimber) error
+// HillClimberOptionFunc is a function that configures a HillClimber. It is used
+// in NewHillClimber.
+type HillClimberOptionFunc func(*HillClimber) error
 
 // SetAcceleration sets the acceleration used by the optimiser.
-func SetAcceleration(acceleration float64) OptimiserOptionFunc {
+func SetAcceleration(acceleration float64) HillClimberOptionFunc {
 	return func(hc *HillClimber) error {
 		hc.acceleration = acceleration
 		return nil
@@ -195,7 +191,7 @@ func SetAcceleration(acceleration float64) OptimiserOptionFunc {
 }
 
 // SetStep sets the step used by the optimiser.
-func SetStep(step float64) OptimiserOptionFunc {
+func SetStep(step float64) HillClimberOptionFunc {
 	return func(hc *HillClimber) error {
 		hc.step = step
 		return nil
@@ -203,7 +199,7 @@ func SetStep(step float64) OptimiserOptionFunc {
 }
 
 // SetEpsilon sets the epsilon used by the optimiser.
-func SetEpsilon(epsilon int64) OptimiserOptionFunc {
+func SetEpsilon(epsilon int64) HillClimberOptionFunc {
 	return func(hc *HillClimber) error {
 		hc.epsilon = epsilon
 		return nil
@@ -211,7 +207,7 @@ func SetEpsilon(epsilon int64) OptimiserOptionFunc {
 }
 
 // SetMinValue sets the minimum value used by the optimiser.
-func SetMinValue(minValue int64) OptimiserOptionFunc {
+func SetMinValue(minValue int64) HillClimberOptionFunc {
 	return func(hc *HillClimber) error {
 		hc.minValue = minValue
 		return nil
@@ -219,17 +215,9 @@ func SetMinValue(minValue int64) OptimiserOptionFunc {
 }
 
 // SetMaxValue sets the maximum value used by the optimiser.
-func SetMaxValue(maxValue int64) OptimiserOptionFunc {
+func SetMaxValue(maxValue int64) HillClimberOptionFunc {
 	return func(hc *HillClimber) error {
 		hc.maxValue = maxValue
-		return nil
-	}
-}
-
-// SetMaxStep sets the maximum step size used by the optimiser.
-func SetMaxStep(maxStep int64) OptimiserOptionFunc {
-	return func(hc *HillClimber) error {
-		hc.maxStep = maxStep
 		return nil
 	}
 }
