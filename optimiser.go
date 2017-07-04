@@ -7,6 +7,17 @@ import (
 	"github.com/unchartedsoftware/plog"
 )
 
+const (
+	scoringDuration     = 10
+	numberOfRuns        = 5
+	defaultAcceleration = float64(1.5)
+	defaultStep         = float64(1024 * 1024)
+	defaultEpsilon      = int64(1024 * 200)
+	defaultMaxStep      = int64(1024 * 1024 * 4)
+	defaultMinValue     = int64(1024 * 1024)
+	defaultMaxValue     = int64(1024 * 1024 * 60)
+)
+
 // Solution interface represents an optimisable solution.
 type Solution interface {
 	Score() float64
@@ -32,24 +43,24 @@ func NewBulkSize(ingestor *Ingestor) *BulkSize {
 }
 
 // Score will provide a score for the bulk size by getting the docs / second
-// processed over a 30 second period.
+// processed over a defined period.
 func (bs *BulkSize) Score() float64 {
 	startDocCount := progress.GetDocCount()
-	time.Sleep(time.Second * 30)
+	time.Sleep(time.Second * scoringDuration)
 	endDocCount := progress.GetDocCount()
 
-	return float64(endDocCount-startDocCount) / 30
+	return float64(endDocCount-startDocCount) / scoringDuration
 }
 
 // GetValue returns the current bulk size.
 func (bs *BulkSize) GetValue() int64 {
-	return bs.Ingestor.bulkByteSize
+	return bs.Ingestor.getBulkByteSize()
 }
 
 // SetValue set the bulk size.
 func (bs *BulkSize) SetValue(value int64) {
 	log.Infof("Setting bulk byte size to %d", value)
-	bs.Ingestor.bulkByteSize = value
+	bs.Ingestor.setBulkByteSize(value)
 }
 
 // HillClimber implements the Optimiser interface.
@@ -59,56 +70,91 @@ type HillClimber struct {
 	epsilon      int64
 	minValue     int64
 	maxValue     int64
+	maxStep      int64
 }
 
 // NewHillClimber creates a new HillClimber instance.
-func NewHillClimber(acceleration, step float64, epsilon int64, minValue, maxValue int64) *HillClimber {
-	return &HillClimber{
-		acceleration: acceleration,
-		step:         step,
-		epsilon:      epsilon,
+func NewHillClimber(options ...OptimiserOptionFunc) (*HillClimber, error) {
+	hc := &HillClimber{
+		acceleration: defaultAcceleration,
+		step:         defaultStep,
+		epsilon:      defaultEpsilon,
+		minValue:     defaultMinValue,
+		maxValue:     defaultMaxValue,
+		maxStep:      defaultMaxStep,
 	}
+
+	for _, option := range options {
+		if err := option(hc); err != nil {
+			return nil, err
+		}
+	}
+
+	return hc, nil
 }
 
 // Optimise will optimise the solution using a basic hill climbing approach.
 func (hc *HillClimber) Optimise(solution Solution) {
-	bestScore := solution.Score()
-
 	// Want to test both sides of the current value.
 	accelerationAdjustments := []float64{-1, 1}
 
 	log.Infof("Starting optimization run.")
 	for int64(hc.step) > hc.epsilon {
+		// Track the winners of the run. Overall best solution for iteration
+		// will be the adjustment that has won the most runs.
+		runResult := make([]uint, 3)
 		currentValue := solution.GetValue()
 
-		bestValue := currentValue
-		previousScore := bestScore
-		log.Infof("Current score: %f\tCurrent value: %d", bestScore, currentValue)
-		for _, aa := range accelerationAdjustments {
-			value := currentValue + int64(hc.step*hc.acceleration*aa)
-			value = hc.keepInBounds(value)
+		// Run it a few times since throughput can fluctuate a lot.
+		// NOTE: bestAA is the value of aa that generates the best score. It
+		// can be -1, 0 (current value) or 1.
+		for runCount := 0; runCount < numberOfRuns; runCount++ {
+			log.Infof("Run #%d", runCount)
+			bestScore := solution.Score()
+			bestAA := 0
 
-			solution.SetValue(value)
-			score := solution.Score()
-			log.Infof("Value %d got score of %f", value, score)
+			log.Infof("Current score: %f\tCurrent value: %d", bestScore, currentValue)
+			for _, aa := range accelerationAdjustments {
+				value := currentValue + int64(hc.step*hc.acceleration*aa)
+				value = hc.keepInBounds(value)
 
-			if score > bestScore {
-				bestScore = score
-				bestValue = value
+				solution.SetValue(value)
+				score := solution.Score()
+				log.Infof("Value %d got score of %f", value, score)
+
+				if score > bestScore {
+					bestScore = score
+					bestAA = int(aa)
+				}
+			}
+
+			log.Infof("Run #%d winner: %d", runCount, bestAA)
+			runResult[bestAA+1]++
+			solution.SetValue(currentValue)
+
+			// Shortcut if clear winner has emerged.
+			if runResult[bestAA+1] > numberOfRuns/2 {
+				break
 			}
 		}
 
-		if bestScore <= previousScore {
+		winner := hc.findWinner(runResult)
+		winner = winner - 1
+		if winner == 0 {
 			// Old score was better so keep the value and decrease the step.
 			hc.step = hc.step / hc.acceleration
 			log.Infof("No difference in score. Setting step to %f", hc.step)
 			solution.SetValue(currentValue)
-			bestScore = solution.Score()
 		} else {
 			// Increase the step and set the new value.
-			log.Infof("New best score. Updating value to %d", bestValue)
-			solution.SetValue(bestValue)
+			newValue := currentValue + int64(hc.step*hc.acceleration*float64(winner))
+			newValue = hc.keepInBounds(newValue)
+			log.Infof("New best score. Updating value to %d", newValue)
+			solution.SetValue(newValue)
 			hc.step = hc.step * hc.acceleration
+			if hc.step > float64(hc.maxStep) {
+				hc.step = float64(hc.maxStep)
+			}
 		}
 	}
 	log.Infof("Done optimization run.")
@@ -123,4 +169,67 @@ func (hc *HillClimber) keepInBounds(value int64) int64 {
 	}
 
 	return value
+}
+
+func (hc *HillClimber) findWinner(runResults []uint) int {
+	bestIndex := -1
+	bestValue := uint(0)
+	for index, value := range runResults {
+		if value > bestValue {
+			bestValue = value
+			bestIndex = index
+		}
+	}
+
+	return bestIndex
+}
+
+type OptimiserOptionFunc func(*HillClimber) error
+
+// SetAcceleration sets the acceleration used by the optimiser.
+func SetAcceleration(acceleration float64) OptimiserOptionFunc {
+	return func(hc *HillClimber) error {
+		hc.acceleration = acceleration
+		return nil
+	}
+}
+
+// SetStep sets the step used by the optimiser.
+func SetStep(step float64) OptimiserOptionFunc {
+	return func(hc *HillClimber) error {
+		hc.step = step
+		return nil
+	}
+}
+
+// SetEpsilon sets the epsilon used by the optimiser.
+func SetEpsilon(epsilon int64) OptimiserOptionFunc {
+	return func(hc *HillClimber) error {
+		hc.epsilon = epsilon
+		return nil
+	}
+}
+
+// SetMinValue sets the minimum value used by the optimiser.
+func SetMinValue(minValue int64) OptimiserOptionFunc {
+	return func(hc *HillClimber) error {
+		hc.minValue = minValue
+		return nil
+	}
+}
+
+// SetMaxValue sets the maximum value used by the optimiser.
+func SetMaxValue(maxValue int64) OptimiserOptionFunc {
+	return func(hc *HillClimber) error {
+		hc.maxValue = maxValue
+		return nil
+	}
+}
+
+// SetMaxStep sets the maximum step size used by the optimiser.
+func SetMaxStep(maxStep int64) OptimiserOptionFunc {
+	return func(hc *HillClimber) error {
+		hc.maxStep = maxStep
+		return nil
+	}
 }
