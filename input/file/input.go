@@ -23,32 +23,48 @@ type Source struct {
 }
 
 func getInfo(path string, excludes []string) ([]*Source, error) {
-	// read target files
-	files, err := ioutil.ReadDir(path)
+	// get info on path
+	info, err := os.Stat(path)
 	if err != nil {
 		return nil, err
 	}
 	// data to populate
 	var sources []*Source
-	// for each file / dir
-	for _, file := range files {
-		if util.IsValidDir(file, excludes) {
-			// depth-first traversal into sub directories
-			children, err := getInfo(path+"/"+file.Name(), excludes)
-			if err != nil {
-				return nil, err
+	// check if dir
+	if !info.IsDir() {
+		// is file
+		// add source
+		sources = append(sources, &Source{
+			file: info,
+			path: path,
+		})
+	} else {
+		// is directory
+		// read target files
+		files, err := ioutil.ReadDir(path)
+		if err != nil {
+			return nil, err
+		}
+		// for each file / dir
+		for _, file := range files {
+			if util.IsValidDir(file, excludes) {
+				// depth-first traversal into sub directories
+				children, err := getInfo(path+"/"+file.Name(), excludes)
+				if err != nil {
+					return nil, err
+				}
+				sources = append(sources, children...)
+			} else if util.IsValidFile(file, excludes) {
+				// add source
+				sources = append(sources, &Source{
+					file: file,
+					path: path,
+				})
 			}
-			sources = append(sources, children...)
-		} else if util.IsValidFile(file, excludes) {
-			// add source
-			sources = append(sources, &Source{
-				file: file,
-				path: path,
-			})
 		}
 	}
 	// return ingest info
-	return sources[0:], nil
+	return sources, nil
 }
 
 // NewInput instantiates a new instance of a file input.
