@@ -128,8 +128,17 @@ func main() {
 
 	// Create a filesystem input type
 	input := file.NewInput(
-		"/path/to/data",
-		[ "files", "or", "dirs", "to", "exclude" ])
+		[
+			"/path/to/file",
+			"/path/to/dir",
+		],
+		[
+			"files",
+			"or",
+			"dirs",
+			"to",
+			"exclude",
+		])
 
 	// Create the elasticsearch client
 	client, err := elastic.NewClient(

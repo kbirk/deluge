@@ -49,13 +49,13 @@ func AddSuccess() {
 
 // Errs returns all ingestion errors.
 func Errs() []error {
-	return errs[0:]
+	return errs
 }
 
 // SampleErrs returns an N sized sample of errors.
 func SampleErrs(n int) []error {
 	if len(errs) < n {
-		return errs[0:]
+		return errs
 	}
 	stride := float64(len(errs)) / float64(n)
 	samples := make([]error, n)
@@ -63,5 +63,5 @@ func SampleErrs(n int) []error {
 		index := int(math.Floor(float64(i) * stride))
 		samples[i] = errs[index]
 	}
-	return samples[0:]
+	return samples
 }
