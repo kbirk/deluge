@@ -11,15 +11,15 @@ import (
 
 // Input represents an input type for reading files off a filesystem.
 type Input struct {
-	path    string
-	index   int
+	paths   []string
 	sources []*Source
+	index   int
 }
 
 // Source represents a filesystem file source.
 type Source struct {
-	file os.FileInfo
-	path string
+	file     os.FileInfo
+	fullpath string
 }
 
 func getInfo(path string, excludes []string) ([]*Source, error) {
@@ -31,36 +31,29 @@ func getInfo(path string, excludes []string) ([]*Source, error) {
 	// data to populate
 	var sources []*Source
 	// check if dir
-	if !info.IsDir() {
+	if util.IsValidFile(info, excludes) {
 		// is file
-		// add source
 		sources = append(sources, &Source{
-			file: info,
-			path: path,
+			file:     info,
+			fullpath: path,
 		})
-	} else {
+	}
+	if util.IsValidDir(info, excludes) {
 		// is directory
-		// read target files
-		files, err := ioutil.ReadDir(path)
+		infos, err := ioutil.ReadDir(path)
 		if err != nil {
 			return nil, err
 		}
 		// for each file / dir
-		for _, file := range files {
-			if util.IsValidDir(file, excludes) {
-				// depth-first traversal into sub directories
-				children, err := getInfo(path+"/"+file.Name(), excludes)
-				if err != nil {
-					return nil, err
-				}
-				sources = append(sources, children...)
-			} else if util.IsValidFile(file, excludes) {
-				// add source
-				sources = append(sources, &Source{
-					file: file,
-					path: path,
-				})
+		for _, info := range infos {
+			// get full path
+			fullpath := path + "/" + info.Name()
+			// depth-first traversal into sub directories
+			children, err := getInfo(fullpath, excludes)
+			if err != nil {
+				return nil, err
 			}
+			sources = append(sources, children...)
 		}
 	}
 	// return ingest info
@@ -68,13 +61,17 @@ func getInfo(path string, excludes []string) ([]*Source, error) {
 }
 
 // NewInput instantiates a new instance of a file input.
-func NewInput(path string, excludes []string) (*Input, error) {
-	sources, err := getInfo(path, excludes)
-	if err != nil {
-		return nil, err
+func NewInput(paths []string, excludes []string) (*Input, error) {
+	var sources []*Source
+	for _, path := range paths {
+		srcs, err := getInfo(path, excludes)
+		if err != nil {
+			return nil, err
+		}
+		sources = append(sources, srcs...)
 	}
 	return &Input{
-		path:    path,
+		paths:   paths,
 		sources: sources,
 		index:   0,
 	}, nil
@@ -86,7 +83,7 @@ func (i *Input) Next() (io.Reader, error) {
 		return nil, io.EOF
 	}
 	source := i.sources[i.index]
-	reader, err := os.Open(source.path + "/" + source.file.Name())
+	reader, err := os.Open(source.fullpath)
 	if err != nil {
 		return nil, err
 	}
@@ -100,8 +97,8 @@ func (i *Input) Summary() string {
 	for _, source := range i.sources {
 		totalBytes += source.file.Size()
 	}
-	return fmt.Sprintf("Input `%s` contains %d files containing %s",
-		i.path,
+	return fmt.Sprintf("Input %v contains %d files containing %s",
+		i.paths,
 		len(i.sources),
 		util.FormatBytes(totalBytes))
 }

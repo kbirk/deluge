@@ -12,62 +12,56 @@ import (
 type Client interface {
 	Open(string) (io.Reader, error)
 	ReadDir(string) ([]os.FileInfo, error)
+	Stat(string) (os.FileInfo, error)
 }
 
 // Input represents an HDFS input type.
 type Input struct {
 	endpoint string
-	path     string
 	client   Client
-	index    int
+	paths    []string
 	sources  []*Source
+	index    int
 }
 
 // Source represents an HDFS file source.
 type Source struct {
-	file os.FileInfo
-	path string
+	file     os.FileInfo
+	fullpath string
 }
 
 func getInfo(client Client, path string, excludes []string) ([]*Source, error) {
 	// get info on path
-	info, err := os.Stat(path)
+	info, err := client.Stat(path)
 	if err != nil {
 		return nil, err
 	}
 	// data to populate
 	var sources []*Source
 	// check if dir
-	if !info.IsDir() {
+	if util.IsValidFile(info, excludes) {
 		// is file
-		// add source
 		sources = append(sources, &Source{
-			file: info,
-			path: path,
+			file:     info,
+			fullpath: path,
 		})
-	} else {
+	}
+	if util.IsValidDir(info, excludes) {
 		// is directory
-		// read target files
-		files, err := client.ReadDir(path)
+		infos, err := client.ReadDir(path)
 		if err != nil {
 			return nil, err
 		}
 		// for each file / dir
-		for _, file := range files {
-			if util.IsValidDir(file, excludes) {
-				// depth-first traversal into sub directories
-				children, err := getInfo(client, path+"/"+file.Name(), excludes)
-				if err != nil {
-					return nil, err
-				}
-				sources = append(sources, children...)
-			} else if util.IsValidFile(file, excludes) {
-				// add source
-				sources = append(sources, &Source{
-					file: file,
-					path: path,
-				})
+		for _, info := range infos {
+			// get full path
+			fullpath := path + "/" + info.Name()
+			// depth-first traversal into sub directories
+			children, err := getInfo(client, fullpath, excludes)
+			if err != nil {
+				return nil, err
 			}
+			sources = append(sources, children...)
 		}
 	}
 	// return ingest info
@@ -75,13 +69,17 @@ func getInfo(client Client, path string, excludes []string) ([]*Source, error) {
 }
 
 // NewInput instantiates a new instance of a file input.
-func NewInput(client Client, path string, excludes []string) (*Input, error) {
-	sources, err := getInfo(client, path, excludes)
-	if err != nil {
-		return nil, err
+func NewInput(client Client, paths []string, excludes []string) (*Input, error) {
+	var sources []*Source
+	for _, path := range paths {
+		srcs, err := getInfo(client, path, excludes)
+		if err != nil {
+			return nil, err
+		}
+		sources = append(sources, srcs...)
 	}
 	return &Input{
-		path:    path,
+		paths:   paths,
 		client:  client,
 		sources: sources,
 		index:   0,
@@ -94,7 +92,7 @@ func (i *Input) Next() (io.Reader, error) {
 		return nil, io.EOF
 	}
 	source := i.sources[i.index]
-	reader, err := i.client.Open(source.path + "/" + source.file.Name())
+	reader, err := i.client.Open(source.fullpath)
 	if err != nil {
 		return nil, err
 	}
@@ -108,8 +106,8 @@ func (i *Input) Summary() string {
 	for _, source := range i.sources {
 		totalBytes += source.file.Size()
 	}
-	return fmt.Sprintf("Input `%s` contains %d files containing %s",
-		i.path,
+	return fmt.Sprintf("Input %v contains %d files containing %s",
+		i.paths,
 		len(i.sources),
 		util.FormatBytes(totalBytes))
 }

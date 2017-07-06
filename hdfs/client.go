@@ -78,3 +78,8 @@ func (c *Client) Close() error {
 func (c *Client) ReadDir(dirname string) ([]os.FileInfo, error) {
 	return c.conn.ReadDir(dirname)
 }
+
+// Stat returns an os.FileInfo describing the named file or directory.
+func (c *Client) Stat(path string) (os.FileInfo, error) {
+	return c.conn.Stat(path)
+}
