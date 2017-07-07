@@ -1,5 +1,5 @@
-hash: 681f17487933919c2d0988d22ef7727463e5ab184f5c0329ff89ae6bcef008ab
-updated: 2017-06-13T20:32:34.070587706-04:00
+hash: 5338454c085fbf9d4e6b2c284800191627fc09409466f61ce1e2f1aba1f2c672
+updated: 2017-07-07T13:08:18.514709746-04:00
 imports:
 - name: github.com/colinmarc/hdfs
   version: d9614569203878ff04bb4420b929923949e855fc
@@ -8,30 +8,41 @@ imports:
   - protocol/hadoop_hdfs
   - rpc
 - name: github.com/golang/protobuf
-  version: e325f446bebc2998605911c0a2650d9920361d4a
+  version: 6a1fa9404c0aebf36c879bc50152edcc953910d2
   subpackages:
   - proto
+- name: github.com/golang/snappy
+  version: 553a641470496b2327abcac10b36396bd98e45c9
 - name: github.com/mattn/go-colorable
-  version: ded68f7a9561c023e790de24279db7ebf473ea80
+  version: 941b50ebc6efddf4c41c8e4537a5f68a4e686b24
 - name: github.com/mattn/go-isatty
   version: fc9e8d8ef48496124e79ae0df75490096eccf6fe
 - name: github.com/mgutz/ansi
   version: 9520e82c474b0a04dd04f8a40959027271bab992
+- name: github.com/optiopay/kafka
+  version: 7b7b6a0d49740e36cd39226913b38cecf9ef76cb
+  subpackages:
+  - proto
 - name: github.com/pkg/errors
   version: c605e284fe17294bda444b34710735b29d1a9d90
 - name: github.com/unchartedsoftware/plog
   version: 34d2bbd3c0a9458feb0752af2b578a23eb8ddc4f
+- name: golang.org/x/net
+  version: 054b33e6527139ad5b1ec2f6232c3b175bd9a30c
+  subpackages:
+  - context
+  - context/ctxhttp
 - name: golang.org/x/sys
-  version: 9ccfe848b9db8435a24c424abbc07a921adf1df5
+  version: 739734461d1c916b6c72a63d7efda2b27edb369f
   subpackages:
   - unix
 - name: gopkg.in/olivere/elastic.v3
-  version: d8c80d884c60d6844d3042cf1697998f34c25e37
+  version: 5a75b7d18bca7420e68338600e8c9f611435f911
   subpackages:
   - backoff
   - uritemplates
 - name: gopkg.in/olivere/elastic.v5
-  version: f1fd7305d0b6270192b27010fe1193568b18e4b6
+  version: 3113f9b9ad37509fe5f8a0e5e91c96fdc4435e26
   subpackages:
   - uritemplates
 testImports: []
