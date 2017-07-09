@@ -107,3 +107,12 @@ func SetScanBufferSize(numBytes int) IngestorOptionFunc {
 		return nil
 	}
 }
+
+// SetBulkSizeOptimiser sets the optimiser to use for bulk sizes. If not
+// specified, then a static bulk size will be used.
+func SetBulkSizeOptimiser(bulkSizeOptimiser Optimiser) IngestorOptionFunc {
+	return func(i *Ingestor) error {
+		i.bulkSizeOptimiser = bulkSizeOptimiser
+		return nil
+	}
+}

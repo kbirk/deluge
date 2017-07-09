@@ -8,6 +8,7 @@ import (
 	"compress/zlib"
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/unchartedsoftware/plog"
 
@@ -45,6 +46,8 @@ type Ingestor struct {
 	threshold            float64
 	bulkByteSize         int64
 	scanBufferSize       int
+	bulkSizeOptimiser    Optimiser
+	mutex                *sync.RWMutex
 }
 
 // NewIngestor instantiates and configures a new Ingestor instance.
@@ -59,6 +62,7 @@ func NewIngestor(options ...IngestorOptionFunc) (*Ingestor, error) {
 		threshold:            defaultThreshold,
 		bulkByteSize:         defaultBulkByteSize,
 		scanBufferSize:       defaultScanBufferSize,
+		mutex:                &sync.RWMutex{},
 	}
 	// run the options through it
 	for _, option := range options {
@@ -127,6 +131,20 @@ func (i *Ingestor) enableReplicas() error {
 	return nil
 }
 
+func (i *Ingestor) getBulkByteSize() int64 {
+	i.mutex.RLock()
+	bytes := i.bulkByteSize
+	i.mutex.RUnlock()
+
+	return bytes
+}
+
+func (i *Ingestor) setBulkByteSize(bulkByteSize int64) {
+	i.mutex.Lock()
+	i.bulkByteSize = bulkByteSize
+	i.mutex.Unlock()
+}
+
 // Ingest will run the ingest job.
 func (i *Ingestor) Ingest() error {
 
@@ -161,6 +179,12 @@ func (i *Ingestor) Ingest() error {
 
 	// start progress tracking
 	progress.StartProgress()
+
+	// start optimising if signalled.
+	if i.bulkSizeOptimiser != nil {
+		s := NewBulkSize(i)
+		go i.bulkSizeOptimiser.Optimise(s)
+	}
 
 	// launch the ingest job
 	err = p.Execute(i.newlineWorker(), i.input)
@@ -306,7 +330,7 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 					// flag this document as successful
 					threshold.AddSuccess()
 					// check if we have hit batch size limit
-					if bulk.EstimatedSizeInBytes() >= i.bulkByteSize {
+					if bulk.EstimatedSizeInBytes() >= i.getBulkByteSize() {
 						// ready to send
 						break
 					}
