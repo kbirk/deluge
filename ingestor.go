@@ -85,7 +85,7 @@ func (i *Ingestor) prepareIndex() error {
 		log.Infof("Deleting existing index `%s`", i.index)
 		err := i.client.DeleteIndex(i.index)
 		if err != nil {
-			return fmt.Errorf("Error occured while deleting index: %v", err)
+			return fmt.Errorf("Error occurred while deleting index: %v", err)
 		}
 	}
 	// instantiate a new document
@@ -109,14 +109,14 @@ func (i *Ingestor) prepareIndex() error {
 		log.Infof("Creating index `%s`", i.index)
 		err := i.client.CreateIndex(i.index, mapping)
 		if err != nil {
-			return fmt.Errorf("Error occured while creating index: %v", err)
+			return fmt.Errorf("Error occurred while creating index: %v", err)
 		}
 	} else {
 		// send put mapping request
 		log.Infof("Putting mapping `%s`", i.index)
 		err := i.client.PutMapping(i.index, typ, mapping)
 		if err != nil {
-			return fmt.Errorf("Error occured while updating mapping for index: %v", err)
+			return fmt.Errorf("Error occurred while updating mapping for index: %v", err)
 		}
 	}
 	return nil

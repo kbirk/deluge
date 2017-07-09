@@ -16,7 +16,7 @@ This package provides facilities for customizable bulk ingests of data into [Ela
 - Sustainable long-term ingestion via fixed-size connection pool and back-pressure
 - Configurable error thresholding to prevent hard crashes on sporadic parsing errors
 - Clean, simple, and highly extensible interfaces for customizable ingests
-- Ability to dynamically determine bulk size to use for ElasticSearch
+- Bulk size optimization to dynamically adjust payloads for maximum efficiency.
 
 ## Dependencies
 
@@ -168,7 +168,7 @@ func main() {
 		deluge.SetScanBufferSize(1024*1024*2),
 		deluge.ClearExistingIndex(),
 		deluge.SetNumReplicas(1),
-        deluge.SetBulkSizeOptimiser(hillClimber))
+		deluge.SetBulkSizeOptimiser(hillClimber))
 	if err != nil {
 		log.Fatal(err)
 	}

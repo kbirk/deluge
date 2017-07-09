@@ -146,7 +146,7 @@ func (c *Client) IndexExists(index string) (bool, error) {
 func (c *Client) DeleteIndex(index string) error {
 	res, err := c.client.DeleteIndex(index).Do(context.Background())
 	if err != nil {
-		return fmt.Errorf("Error occured while deleting index: %v", err)
+		return fmt.Errorf("Error occurred while deleting index: %v", err)
 	}
 	if !res.Acknowledged {
 		return fmt.Errorf("Delete index request not acknowledged for index: `%s`", index)
@@ -160,7 +160,7 @@ func (c *Client) CreateIndex(index string, mapping string) error {
 	body := fmt.Sprintf("{\"mappings\":%s,\"settings\":{\"number_of_replicas\":0}}", mapping)
 	res, err := c.client.CreateIndex(index).Body(body).Do(context.Background())
 	if err != nil {
-		return fmt.Errorf("Error occured while creating index: %v", err)
+		return fmt.Errorf("Error occurred while creating index: %v", err)
 	}
 	if !res.Acknowledged {
 		return fmt.Errorf("Create index request not acknowledged for `%s`", index)
@@ -172,7 +172,7 @@ func (c *Client) CreateIndex(index string, mapping string) error {
 func (c *Client) PutMapping(index string, typ string, mapping string) error {
 	res, err := c.client.PutMapping().Index(index).Type(typ).BodyString(mapping).Do(context.Background())
 	if err != nil {
-		return fmt.Errorf("Error occured while updating mapping for index: %v", err)
+		return fmt.Errorf("Error occurred while updating mapping for index: %v", err)
 	}
 	if !res.Acknowledged {
 		return fmt.Errorf("Put mapping request not acknowledged for `%s`", index)
