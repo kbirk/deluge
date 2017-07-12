@@ -48,6 +48,7 @@ type Ingestor struct {
 	scanBufferSize       int
 	bulkSizeOptimiser    Optimiser
 	mutex                *sync.RWMutex
+	callbackWG           *sync.WaitGroup
 }
 
 // NewIngestor instantiates and configures a new Ingestor instance.
@@ -63,6 +64,7 @@ func NewIngestor(options ...IngestorOptionFunc) (*Ingestor, error) {
 		bulkByteSize:         defaultBulkByteSize,
 		scanBufferSize:       defaultScanBufferSize,
 		mutex:                &sync.RWMutex{},
+		callbackWG:           &sync.WaitGroup{},
 	}
 	// run the options through it
 	for _, option := range options {
@@ -195,6 +197,9 @@ func (i *Ingestor) Ingest() error {
 		return err
 	}
 
+	// wait until all callbacks executed
+	i.callbackWG.Wait()
+
 	// success
 	progress.EndProgress()
 	progress.PrintSuccess()
@@ -238,10 +243,14 @@ func getReader(reader io.Reader, compression string) (io.Reader, error) {
 	}
 }
 
-func createProgressCallback(bytes, docs int64) equalizer.CallbackFunc {
+func (i *Ingestor) createProgressCallback(bytes, docs int64) equalizer.CallbackFunc {
+	// increment callback waitgroup
+	i.callbackWG.Add(1)
 	return func() {
 		// update and print current progress
 		progress.UpdateProgress(bytes, docs)
+		// decrement waitgroup
+		i.callbackWG.Done()
 	}
 }
 
@@ -354,7 +363,7 @@ func (i *Ingestor) newlineWorker() pool.Worker {
 			// create the callback to be executed after this bulk request
 			// succeeds. This is required ensure that the correct `bytes`
 			// value is snapshotted.
-			callback := createProgressCallback(bytes, docs)
+			callback := i.createProgressCallback(bytes, docs)
 
 			// send the request through the equalizer, this will wait until the
 			// equalizer determines ES is 'ready'.

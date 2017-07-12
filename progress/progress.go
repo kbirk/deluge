@@ -11,6 +11,10 @@ import (
 	"github.com/unchartedsoftware/deluge/util"
 )
 
+const (
+	clearLine = "\x1b[2K"
+)
+
 var (
 	startTime    time.Time
 	endTime      time.Time
@@ -27,21 +31,29 @@ func duration() time.Duration {
 	return now.Sub(startTime)
 }
 
+func print() {
+	// print the current progress
+	fmt.Printf("%s\rIngested %s (%d docs) at a rate of %sps (%d docs / sec), current duration: %v",
+		clearLine,
+		util.FormatBytes(currentBytes),
+		currentDocs,
+		util.FormatBytes(bytesPerSec),
+		docsPerSec,
+		duration())
+}
+
 func tick() {
 	for {
 		select {
 		case <-endChan:
+			// print last progress
+			print()
 			// stop the progress ticker
 			return
 
 		default:
 			// print the current progress
-			fmt.Printf("\rIngested %+9s (%d docs) at a rate of %+8sps (%d docs / sec), current duration: %+9v",
-				util.FormatBytes(currentBytes),
-				currentDocs,
-				util.FormatBytes(bytesPerSec),
-				docsPerSec,
-				duration())
+			print()
 			// sleep for a second
 			time.Sleep(time.Second)
 		}
@@ -86,6 +98,9 @@ func UpdateProgress(bytes, docs int64) {
 	if elapsedSec > 0 {
 		bytesPerSec = currentBytes / elapsedSec
 		docsPerSec = currentDocs / elapsedSec
+	} else {
+		bytesPerSec = currentBytes
+		docsPerSec = currentDocs
 	}
 
 	mutex.Unlock()
