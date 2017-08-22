@@ -40,7 +40,7 @@ func SetTopic(topic string) ClientOptionFunc {
 	}
 }
 
-// Client represents an HDFS client.
+// Client represents an Kafka client.
 type Client struct {
 	endpoints     []string
 	user          string
@@ -51,7 +51,7 @@ type Client struct {
 	consumers     []kafka.Consumer
 }
 
-// NewClient instantiates and returns a new HDFS client.
+// NewClient instantiates and returns a new Kafka client.
 func NewClient(options ...ClientOptionFunc) (*Client, error) {
 	// instantiate client
 	client := &Client{
