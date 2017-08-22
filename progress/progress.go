@@ -24,6 +24,7 @@ var (
 	docsPerSec   = int64(1)
 	mutex        = sync.Mutex{}
 	endChan      chan bool
+	wg           = sync.WaitGroup{}
 )
 
 func duration() time.Duration {
@@ -43,19 +44,21 @@ func print() {
 }
 
 func tick() {
+	wg.Add(1)
+	ticker := time.NewTicker(time.Second)
 	for {
 		select {
 		case <-endChan:
+			// stop the ticker
+			ticker.Stop()
 			// print last progress
 			print()
-			// stop the progress ticker
+			wg.Done()
 			return
 
-		default:
+		case <-ticker.C:
 			// print the current progress
 			print()
-			// sleep for a second
-			time.Sleep(time.Second)
 		}
 	}
 }
@@ -73,6 +76,7 @@ func StartProgress() {
 func EndProgress() {
 	endTime = time.Now().Round(time.Second)
 	endChan <- true
+	wg.Wait()
 	close(endChan)
 }
 
