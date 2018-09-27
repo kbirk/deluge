@@ -2,8 +2,6 @@ version=0.1.0
 
 .PHONY: all
 
-NOVENDOR := $(shell glide novendor)
-
 all:
 	@echo "make <cmd>"
 	@echo ""
@@ -15,19 +13,19 @@ all:
 	@echo "  install       - install vendored dependencies"
 
 lint:
-	@go vet $(NOVENDOR)
+	@go vet ./...
 	@go list ./... | grep -v /vendor/ | xargs -L1 golint
 
 test:
-	@go test $(NOVENDOR)
+	@go test ./...
 
 fmt:
-	@go fmt $(NOVENDOR)
+	@go fmt ./...
 
 build: lint
-	@go build $(NOVENDOR)
+	@go build ./...
 
 install:
-	@go get github.com/golang/lint/golint
-	@go get github.com/Masterminds/glide
-	@glide install
+	@go get -u github.com/golang/lint/golint
+	@go get -u github.com/golang/dep/cmd/dep
+	@dep ensure
