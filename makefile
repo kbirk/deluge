@@ -27,5 +27,4 @@ build: lint
 
 install:
 	@go get -u golang.org/x/lint/golint
-	@go get -u github.com/golang/dep/cmd/dep
-	@dep ensure
+	@go mod vendor
