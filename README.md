@@ -173,10 +173,9 @@ func main() {
 
 ## Development
 
-### Requirements:
+##### Requirements:
 
 * Go version 1.12 or higher.
-* `golint`
 
 ##### Clone the repository:
 
