@@ -26,5 +26,4 @@ build: lint
 	@go build ./...
 
 install:
-	@go get -u golang.org/x/lint/golint
 	@go mod vendor

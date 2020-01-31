@@ -173,11 +173,14 @@ func main() {
 
 ## Development
 
+### Requirements:
+
+* Go version 1.12 or higher.
+* `golint`
+
 ##### Clone the repository:
 
 ```bash
-mkdir -p $GOPATH/src/github.com/unchartedsoftware
-cd $GOPATH/src/github.com/unchartedsoftware
 git clone git@github.com:unchartedsoftware/deluge.git
 ```
 
