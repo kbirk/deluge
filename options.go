@@ -116,3 +116,12 @@ func SetBulkSizeOptimiser(bulkSizeOptimiser Optimiser) IngestorOptionFunc {
 		return nil
 	}
 }
+
+// SetUpdateMapping sets whether or not to update an index's mapping if it
+// already exists.
+func SetUpdateMapping(updateMapping bool) IngestorOptionFunc {
+	return func(i *Ingestor) error {
+		i.updateMapping = updateMapping
+		return nil
+	}
+}
