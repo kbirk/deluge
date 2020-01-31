@@ -10,7 +10,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/unchartedsoftware/plog"
+	log "github.com/unchartedsoftware/plog"
 
 	"github.com/unchartedsoftware/deluge/equalizer"
 	"github.com/unchartedsoftware/deluge/pool"
@@ -29,6 +29,7 @@ const (
 	defaultThreshold            = 0.01
 	defaultBulkByteSize         = 1024 * 1024 * 20
 	defaultScanBufferSize       = 1024 * 1024 * 2
+	defaultUpdateMapping        = false
 )
 
 // Ingestor is an Elasticsearch ingestor client. Create one by calling
@@ -46,6 +47,7 @@ type Ingestor struct {
 	threshold            float64
 	bulkByteSize         int64
 	scanBufferSize       int
+	updateMapping        bool
 	bulkSizeOptimiser    Optimiser
 	mutex                *sync.RWMutex
 	callbackWG           *sync.WaitGroup
@@ -63,6 +65,7 @@ func NewIngestor(options ...IngestorOptionFunc) (*Ingestor, error) {
 		threshold:            defaultThreshold,
 		bulkByteSize:         defaultBulkByteSize,
 		scanBufferSize:       defaultScanBufferSize,
+		updateMapping:        defaultUpdateMapping,
 		mutex:                &sync.RWMutex{},
 		callbackWG:           &sync.WaitGroup{},
 	}
@@ -113,7 +116,7 @@ func (i *Ingestor) prepareIndex() error {
 		if err != nil {
 			return fmt.Errorf("Error occurred while creating index: %v", err)
 		}
-	} else {
+	} else if i.updateMapping {
 		// send put mapping request
 		log.Infof("Putting mapping `%s`", i.index)
 		err := i.client.PutMapping(i.index, typ, mapping)
