@@ -125,3 +125,11 @@ func SetUpdateMapping(updateMapping bool) IngestorOptionFunc {
 		return nil
 	}
 }
+
+// SetReadOnly sets whether or not to set an index to read only after ingestion
+func SetReadOnly(readOnly bool) IngestorOptionFunc {
+	return func(i *Ingestor) error {
+		i.readOnly = readOnly
+		return nil
+	}
+}
