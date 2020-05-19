@@ -30,6 +30,7 @@ const (
 	defaultBulkByteSize         = 1024 * 1024 * 20
 	defaultScanBufferSize       = 1024 * 1024 * 2
 	defaultUpdateMapping        = false
+	defaultReadOnly             = false
 )
 
 // Ingestor is an Elasticsearch ingestor client. Create one by calling
@@ -48,6 +49,7 @@ type Ingestor struct {
 	bulkByteSize         int64
 	scanBufferSize       int
 	updateMapping        bool
+	readOnly             bool
 	bulkSizeOptimiser    Optimiser
 	mutex                *sync.RWMutex
 	callbackWG           *sync.WaitGroup
@@ -66,6 +68,7 @@ func NewIngestor(options ...IngestorOptionFunc) (*Ingestor, error) {
 		bulkByteSize:         defaultBulkByteSize,
 		scanBufferSize:       defaultScanBufferSize,
 		updateMapping:        defaultUpdateMapping,
+		readOnly:             defaultReadOnly,
 		mutex:                &sync.RWMutex{},
 		callbackWG:           &sync.WaitGroup{},
 	}
@@ -217,6 +220,12 @@ func (i *Ingestor) Ingest() error {
 			return err
 		}
 	}
+
+	// set the index as read-only (if necessary)
+	if err := i.client.SetReadOnly(i.index, i.readOnly); err != nil {
+		return err
+	}
+
 	return nil
 }
 

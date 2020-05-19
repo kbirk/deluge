@@ -247,3 +247,16 @@ func (c *Client) GetIndexReader(index string, scanSize int) (es.IndexReader, err
 		scroll: c.client.Scroll(index).Size(scanSize),
 	}, nil
 }
+
+// SetReadOnly sets the read-only status of an index
+func (c *Client) SetReadOnly(index string, readOnly bool) error {
+	body := fmt.Sprintf("{\"index\":{\"blocks\":{\"read_only\": %v}}}", readOnly)
+	res, err := c.client.IndexPutSettings(index).BodyString(body).Do(context.Background())
+	if err != nil {
+		return fmt.Errorf("Error occurred while trying to set read_only attribute of the index: %v", err)
+	}
+	if !res.Acknowledged {
+		return fmt.Errorf("Setting read only attribute request not acknowledged for index `%s`", index)
+	}
+	return nil
+}

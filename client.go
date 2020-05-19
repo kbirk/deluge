@@ -8,4 +8,5 @@ type Client interface {
 	CreateIndex(string, string) error
 	PutMapping(string, string, string) error
 	EnableReplicas(string, int) error
+	SetReadOnly(string, bool) error
 }
