@@ -9,4 +9,5 @@ type Client interface {
 	PutMapping(string, string, string) error
 	EnableReplicas(string, int) error
 	SetReadOnly(string, bool) error
+	SetBlockWrite(string, bool) error
 }

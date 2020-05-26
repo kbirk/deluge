@@ -126,10 +126,21 @@ func SetUpdateMapping(updateMapping bool) IngestorOptionFunc {
 	}
 }
 
-// SetReadOnly sets whether or not to set an index to read only after ingestion
+// SetReadOnly sets whether or not to set an index to read only after ingestion.
+// However, you will be unable to clone the index, since cloning alters metadata.
+// If you want to be able to clone your index consider `SetBlockWrite(true)`
 func SetReadOnly(readOnly bool) IngestorOptionFunc {
 	return func(i *Ingestor) error {
 		i.readOnly = readOnly
+		return nil
+	}
+}
+
+// SetBlockWrite sets whether we are able to set the body of the index to read only.
+// You will still be able to alter the metadata of an index if you use this setting.
+func SetBlockWrite(blockWrite bool) IngestorOptionFunc {
+	return func(i *Ingestor) error {
+		i.blockWrite = blockWrite
 		return nil
 	}
 }

@@ -260,3 +260,16 @@ func (c *Client) SetReadOnly(index string, readOnly bool) error {
 	}
 	return nil
 }
+
+// SetBlockWrite sets the block-write status of an index
+func (c *Client) SetBlockWrite(index string, blockWrite bool) error {
+	body := fmt.Sprintf("{\"index\":{\"blocks\":{\"write\": %v}}}", blockWrite)
+	res, err := c.client.IndexPutSettings(index).BodyString(body).Do(context.Background())
+	if err != nil {
+		return fmt.Errorf("Error occurred while trying to set block_write attribute of the index: %v", err)
+	}
+	if !res.Acknowledged {
+		return fmt.Errorf("Setting block write attribute request not acknowledged for index `%s`", index)
+	}
+	return nil
+}
