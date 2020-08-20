@@ -26,7 +26,7 @@ type Request interface {
 
 // CallbackFunc represents an simple callback function to be executed after a
 // successful send.
-type CallbackFunc func()
+type CallbackFunc func(error)
 
 // Open initiializes the equalizer and readies it for sending requests.
 func Open(size int) {
@@ -73,9 +73,8 @@ func throttle(took uint64) {
 func forwardRequest(req Request, reqTook uint64, fn CallbackFunc) {
 	throttle(reqTook)
 	took, err := req.Send()
-	if fn != nil && err == nil {
-		// only execute callback on success
-		fn()
+	if fn != nil {
+		fn(err)
 	}
 	measure(took)
 	ready <- err
@@ -89,6 +88,7 @@ func Send(req Request, fn CallbackFunc) error {
 	took := req.Took()
 	err := <-ready
 	if err != nil {
+		fn(err) // we need to call this to release the waitgroup
 		return err
 	}
 	waitGroup.Add(1)
@@ -97,13 +97,17 @@ func Send(req Request, fn CallbackFunc) error {
 }
 
 // Close disables the equalizer so that it no longer listens to any incoming bulk requests.
-func Close() {
+func Close() []error {
 	// at this point any requests will be blocked waiting for the eq to read
 	// from the ready channel, so lets grab all these right now so the Equalizer
 	// can close
+	var errs []error
 	go func() {
 		for i := 0; i < maxNumRequests; i++ {
-			<-ready
+			err := <-ready
+			if err != nil {
+				errs = append(errs, err)
+			}
 		}
 		waitGroup.Done()
 	}()
@@ -111,4 +115,5 @@ func Close() {
 	waitGroup.Wait()
 	// safe to close ready channel now
 	close(ready)
+	return errs
 }
