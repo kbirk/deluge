@@ -97,13 +97,17 @@ func Send(req Request, fn CallbackFunc) error {
 }
 
 // Close disables the equalizer so that it no longer listens to any incoming bulk requests.
-func Close() {
+func Close() []error {
 	// at this point any requests will be blocked waiting for the eq to read
 	// from the ready channel, so lets grab all these right now so the Equalizer
 	// can close
+	var errs []error
 	go func() {
 		for i := 0; i < maxNumRequests; i++ {
-			<-ready
+			err := <-ready
+			if err != nil {
+				errs = append(errs, err)
+			}
 		}
 		waitGroup.Done()
 	}()
@@ -111,4 +115,5 @@ func Close() {
 	waitGroup.Wait()
 	// safe to close ready channel now
 	close(ready)
+	return errs
 }

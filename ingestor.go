@@ -209,12 +209,18 @@ func (i *Ingestor) Ingest() error {
 	// wait until all callbacks executed
 	i.callbackWG.Wait()
 
+	// close the backpressure equalizer
+	errs := equalizer.Close()
+	if len(errs) > 0 {
+		// return the first error
+		progress.EndProgress()
+		progress.PrintFailure()
+		return errs[0]
+	}
+
 	// success
 	progress.EndProgress()
 	progress.PrintSuccess()
-
-	// close the backpressure equalizer
-	equalizer.Close()
 
 	// enable replication
 	if i.numReplicas > 0 {
