@@ -266,9 +266,11 @@ func getReader(reader io.Reader, compression string) (io.Reader, error) {
 func (i *Ingestor) createProgressCallback(bytes, docs int64) equalizer.CallbackFunc {
 	// increment callback waitgroup
 	i.callbackWG.Add(1)
-	return func() {
-		// update and print current progress
-		progress.UpdateProgress(bytes, docs)
+	return func(err error) {
+		if err == nil {
+			// update and print current progress if no error
+			progress.UpdateProgress(bytes, docs)
+		}
 		// decrement waitgroup
 		i.callbackWG.Done()
 	}
